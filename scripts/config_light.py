@@ -12,7 +12,7 @@ MAX_EPISODE_STEPS = 3000
 # TODO: remove COM reward, train longer with smaller LR decay, use exp clip_range sched
 # configure Weights & Biases
 WB_PROJECT_NAME = 'torch_migration'
-WB_EXPERIMENT_NAME = 'BSLN - 4M - TF - old project'
+WB_EXPERIMENT_NAME = 'BSLN - 4M - TF - NEW project'
 WB_EXPERIMENT_DESCRIPTION = 'Halved the number of training steps.' \
                             'Getting the current state. Check if we still can train and run agents.' \
                             '' \

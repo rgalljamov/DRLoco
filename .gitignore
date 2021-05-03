@@ -38,3 +38,5 @@ mujoco/gym_mimic_envs/mujoco/mimic_walker2d.py
 /scripts/behavior_cloning/
 /scripts/dim_reduction/
 /scripts/tests/
+
+mujoco/gym_mimic_envs\.egg-info/

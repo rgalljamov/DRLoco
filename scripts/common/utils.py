@@ -5,7 +5,7 @@ from os import path, getcwd
 
 def is_remote():
     # automatically detect running PC
-    return 'remote' in path.abspath(getcwd())
+    return 'code/torch' in path.abspath(getcwd())
 
 def get_absolute_project_path():
     dirname = path.dirname

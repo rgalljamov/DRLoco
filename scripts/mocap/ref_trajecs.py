@@ -23,8 +23,8 @@ PATH_TRAJEC_RANGES = 'assets/ref_trajecs/Trajec_Ranges_Ramp_Slow_200Hz_EulerTrun
 REMOTE = is_remote()
 
 # path to the assets folder, where the mocap data is stored
-assets_path = '/home/rustam/code/remote/' if REMOTE \
-    else '/mnt/88E4BD3EE4BD2EF6/Masters/M.Sc. Thesis/Code/'
+assets_path = '/home/rustam/code/torch/' if REMOTE \
+    else '/mnt/88E4BD3EE4BD2EF6/Users/Sony/Google Drive/WORK/DRL/CodeTorch/'
 
 # path to the saved trajectory ranges (no longer used)
 PATH_TRAJEC_RANGES = assets_path + \
