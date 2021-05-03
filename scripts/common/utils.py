@@ -12,7 +12,7 @@ def get_absolute_project_path():
     return dirname(dirname(dirname(__file__))) + '/'
 
 abs_project_path = get_absolute_project_path()
-from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv, VecNormalize
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecNormalize
 # import gym_mimic_envs
 
 # used for running mean

@@ -6,13 +6,8 @@ from scripts.common import config as cfg
 from gym_mimic_envs.monitor import Monitor as EnvMonitor
 from gym_mimic_envs.mujoco.mimic_walker2d import MimicWalker2dEnv
 
-# to decrease the amount of deprecation warnings
-import tensorflow as tf
-tf.logging.set_verbosity(tf.logging.ERROR)
-
-from stable_baselines import PPO2
+from stable_baselines3 import PPO
 plt = utils.import_pyplot()
-
 
 RENDER = True and not utils.is_remote()
 NO_ET = True

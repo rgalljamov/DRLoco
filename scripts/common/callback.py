@@ -1,11 +1,10 @@
 from os import makedirs, remove, rename
-import tensorflow as tf
 import numpy as np
 import wandb
 
-from stable_baselines import PPO2
+from stable_baselines3 import PPO
 from scripts.common import config as cfg, utils
-from stable_baselines.common.callbacks import BaseCallback
+from stable_baselines3.common.callbacks import BaseCallback
 
 # define intervals/criteria for saving the model
 # save everytime the agent achieved an additional 10% of the max possible return
@@ -294,7 +293,7 @@ class TrainingMonitor(BaseCallback):
             utils.save_model(self.model, cfg.save_path, checkpoint, full=False)
 
         # load current model
-        eval_model = PPO2.load(load_path=model_path)
+        eval_model = PPO.load(load_path=model_path)
 
         eval_env = utils.load_env(checkpoint, cfg.save_path, cfg.env_id)
         mimic_env = eval_env.venv.envs[0].env

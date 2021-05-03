@@ -1,7 +1,5 @@
-from stable_baselines.common.policies import ActorCriticPolicy, register_policy
-from scripts.common.distributions import BoundedDiagGaussianDistributionType, \
-    CustomDiagGaussianDistributionType
-from stable_baselines.a2c.utils import linear, ortho_init
+from stable_baselines3.common.policies import ActorCriticPolicy, register_policy
+from stable_baselines3.common.utils import linear, ortho_init
 from scripts.behavior_cloning.models import load_weights, load_encoder_weights
 from scripts.common.utils import log
 from scripts.common import config as cfg
@@ -15,15 +13,6 @@ class CustomPolicy(ActorCriticPolicy):
         super(CustomPolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=reuse, **kwargs)
 
         # log("Using CustomPolicy.")
-
-        self._pdtype = CustomDiagGaussianDistributionType(ac_space.shape[0])
-
-        if cfg.is_mod(cfg.MOD_PRETRAIN_PI):
-            self._pdtype = CustomDiagGaussianDistributionType(ac_space.shape[0])
-            log("Using Custom Gaussian Distribution\nwith pretrained mean weights and biases!")
-        elif cfg.is_mod(cfg.MOD_BOUND_MEAN) or cfg.is_mod(cfg.MOD_SAC_ACTS):
-            self._pdtype = BoundedDiagGaussianDistributionType(ac_space.shape[0])
-            log("Using Bounded Gaussian Distribution")
 
         with tf.variable_scope("model", reuse=reuse):
             obs = self.processed_obs # shape: (?, obs_dim)

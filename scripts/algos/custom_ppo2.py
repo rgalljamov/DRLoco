@@ -1,13 +1,13 @@
 import time, traceback
 import numpy as np
 
-from stable_baselines import PPO2
+from stable_baselines3 import PPO
 from scripts.common.utils import log
 from scripts.common import config as cfg
 from scripts.behavior_cloning.dataset import get_obs_and_delta_actions
 
 # imports required to copy the learn method
-from stable_baselines import logger
+from stable_baselines3 import logger
 from stable_baselines.common.math_util import safe_mean
 from stable_baselines.common.schedules import get_schedule_fn
 from stable_baselines.common.tf_util import total_episode_reward_logger
