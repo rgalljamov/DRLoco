@@ -1,0 +1,89 @@
+<mujoco model="walker3d">
+  <compiler angle="radian" coordinate="local" inertiafromgeom="false"/>
+  <visual>
+	    <scale framelength='0.5' framewidth='0.0075' forcewidth='0.0075' contactwidth='0.1' contactheight='0.01'/>
+  </visual>
+  <default>
+    <joint armature="0.01" limited="true" />
+    <motor ctrllimited="true" ctrlrange="-300 300" gear="1" forcelimited="true" forcerange="-300 300"/>
+    <geom conaffinity="0" condim="3" contype="1" density="1000" friction=".7 .1 .1" rgba="0.8 0.6 .4 1"/>
+  </default>
+  <option integrator="RK4" timestep="0.001"/>
+  <worldbody>
+    <light cutoff="100" diffuse="1 1 1" dir="-0 0 -1.3" directional="true" exponent="1" pos="0 0 1.3" specular=".1 .1 .1"/>
+    <geom conaffinity="1" condim="3" name="floor" pos="0 0 0" rgba="0.8 0.9 0.8 1" size="40 40 0.125" type="plane" material="MatPlane"/>
+    <body name="torso" pos="0 0 1.08">
+      <inertial pos="0 0 0.35" mass="53.5" diaginertia="2.5 4.0 1.5"/>
+      <camera name="track" mode="trackcom" pos="0 -4 0" xyaxes="1 0 0 0 0 1"/>
+      <joint armature="0" axis="1 0 0" damping="0" limited="false" name="com_x" pos="0 0 0" stiffness="0" type="slide"/>
+      <joint armature="0" axis="0 1 0" damping="0" limited="false" name="com_y" pos="0 0 0" stiffness="0" type="slide"/>
+      <joint armature="0" axis="0 0 1" damping="0" limited="false" name="com_z" pos="0 0 -1.08" ref="1.08" stiffness="0" type="slide"/>
+      <joint armature="0" axis="1 0 0" damping="0" limited="false" name="trunk_rot_x" pos="0 0 0" stiffness="0" type="hinge"/>
+      <joint armature="0" axis="0 1 0" damping="0" limited="false" name="trunk_rot_y" pos="0 0 0" stiffness="0" type="hinge"/>
+      <joint armature="0" axis="0 0 1" damping="0" limited="false" name="trunk_rot_z" pos="0 0 0" stiffness="0" type="hinge"/>
+<!--      <geom name="COM" type="sphere" size="0.05" pos="0 0.25 0.35" rgba="1 0 0 1"/>-->
+      <geom friction="0.9" fromto="0 0 0 0 0 0.7" name="torso_geom" size="0.075" type="capsule"/>
+      <body name="right_thigh" pos="0 -0.08 0">
+        <inertial pos="0 0 -0.2" mass="8.5" diaginertia="0.15 0.15 0.03"/>
+        <joint axis="0 1 0" name="hip_joint_saggital_right" damping="28" range="-0.8727 0.8727" type="hinge"/>
+        <joint axis="1 0 0" name="hip_joint_frontal_right" damping="28" range="-0.7854 0.0873" type="hinge"/>
+        <geom friction="0.9" fromto="0 0 -0.05 0 0 -0.45" name="thigh_geom" size="0.05" type="capsule"/>
+        <body name="right_shank" pos="0 0 -0.5">
+          <inertial pos="0 0 -0.2" mass="3.5" diaginertia="0.05 0.05 0.003"/>
+          <joint axis="0 1 0" name="knee_joint_right" damping="12" range="0. 2.6180" type="hinge"/>
+          <geom friction="0.9" fromto="0 0 -0.05 0 0 -0.45" name="leg_geom" size="0.04" type="capsule"/>
+          <body name="right_foot" pos="0 0 -0.5">
+            <inertial pos="0.06 0 -0.07" mass="1.5" diaginertia="0.003 0.006 0.005"/>
+            <joint axis="0 1 0" name="ankle_joint_right" damping="20"  range="-0.3491 0.6981" type="hinge"/>
+            <geom friction="0.9" axisangle="0 0 1 -.05" name="right_foot" size="0.11 0.05 0.04" pos="0.0675 -0.005 -0.04" type="box"/>
+<!--            <geom friction="0.9" fromto="0 0 -0.04 0.2 0 -0.04" name="foot_geom" size="0.05" type="capsule"/>-->
+            <site name='right_foot_front_left' type="sphere" size="0.005" pos="0.1775 0.04 -0.08" rgba="0 0 .99 0.5" />
+            <site name='right_foot_front_right' type="sphere" size="0.005" pos="0.1775 -0.06 -0.08" rgba="0 0 .99 0.5" />
+            <site name='right_foot_back_left' type="sphere" size="0.005" pos="-0.0425 0.05 -0.08" rgba="0 0 .99 0.5" />
+            <site name='right_foot_back_right' type="sphere" size="0.005" pos="-0.0425 -0.05 -0.08" rgba="0 0 .99 0.5" />
+          </body>
+        </body>
+      </body>
+      <!-- copied and then replace thigh->thigh_left, leg->leg_left, foot->foot_right -->
+      <body name="thigh_left" pos="0 0.08 0">
+        <inertial pos="0 0 -0.2" mass="8.5" diaginertia="0.15 0.15 0.03"/>
+        <joint axis="0 1 0" name="hip_joint_saggital_left" damping="28" range="-0.8727 0.8727" type="hinge"/>
+        <joint axis="1 0 0" name="hip_joint_frontal_left" damping="28" range="-0.0873 0.7854" type="hinge"/>
+        <geom friction="0.9" fromto="0 0 -0.05 0 0 -0.45" name="thigh_left_geom" rgba=".7 .3 .6 1" size="0.05" type="capsule"/>
+        <body name="shank_left" pos="0 0 -0.5">
+          <inertial pos="0 0 -0.2" mass="3.5" diaginertia="0.05 0.05 0.003"/>
+          <joint axis="0 1 0" name="knee_left_joint" damping="12" range="0. 2.6180"  type="hinge"/>
+          <geom friction="0.9" fromto="0 0 -0.05 0 0 -0.45" name="leg_left_geom" rgba=".7 .3 .6 1" size="0.04" type="capsule"/>
+          <body name="foot_left" pos="0 0 -0.5">
+            <inertial pos="0.06 0 -0.07" mass="1.5" diaginertia="0.003 0.006 0.005"/>
+            <joint axis="0 1 0" name="ankle_left_joint" damping="20" range="-0.3491 0.6981" type="hinge"/>
+            <geom friction="0.9" axisangle="0 0 1 .05" name="left_foot" size="0.11 0.05 0.04" pos="0.0675 0.005 -0.04" rgba=".7 .3 .6 1" type="box"/>
+<!--            <geom friction="1.9" fromto="0 0 -0.04 0.2 0 -0.04" name="foot_left_geom" rgba=".7 .3 .6 1" size="0.05" type="capsule"/>-->
+            <site name='left_foot_front_left' type="sphere" size="0.005" pos="0.1775 0.06 -0.08" rgba="0 0 .99 0.5" />
+            <site name='left_foot_front_right' type="sphere" size="0.005" pos="0.1775 -0.04 -0.08" rgba="0 0 .99 0.5" />
+            <site name='left_foot_back_left' type="sphere" size="0.005" pos="-0.0425 0.05 -0.08" rgba="0 0 .99 0.5" />
+            <site name='left_foot_back_right' type="sphere" size="0.005" pos="-0.0425 -0.05 -0.08" rgba="0 0 .99 0.5" />
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <motor joint="hip_joint_saggital_right"/>
+    <motor joint="hip_joint_frontal_right"/>
+    <motor joint="knee_joint_right"/>
+    <motor joint="ankle_joint_right"/>
+    <motor joint="hip_joint_saggital_left"/>
+    <motor joint="hip_joint_frontal_left"/>
+    <motor joint="knee_left_joint"/>
+    <motor joint="ankle_left_joint"/>
+  </actuator>
+    <asset>
+        <texture type="skybox" builtin="gradient" rgb1=".4 .5 .6" rgb2="0 0 0"
+            width="100" height="100"/>
+        <texture builtin="flat" height="1278" mark="cross" markrgb="1 1 1" name="texgeom" random="0.01" rgb1="0.8 0.6 0.4" rgb2="0.8 0.6 0.4" type="cube" width="127"/>
+        <texture builtin="checker" height="100" name="texplane" rgb1="0 0 0" rgb2="0.8 0.8 0.8" type="2d" width="100"/>
+        <material name="MatPlane" reflectance="0.5" shininess="1" specular="1" texrepeat="60 60" texture="texplane"/>
+        <material name="geom" texture="texgeom" texuniform="true"/>
+    </asset>
+</mujoco>
