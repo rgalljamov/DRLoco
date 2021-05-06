@@ -12,8 +12,9 @@ MAX_EPISODE_STEPS = 3000
 # TODO: remove COM reward, train longer with smaller LR decay, use exp clip_range sched
 # configure Weights & Biases
 WB_PROJECT_NAME = 'torch_migration'
-WB_EXPERIMENT_NAME = 'TORCH BSLN - 4M'
-WB_EXPERIMENT_DESCRIPTION = 'Training the first agents with SB3.' \
+WB_EXPERIMENT_NAME = 'TORCH - BSLN - 8M'
+WB_EXPERIMENT_DESCRIPTION = 'No walking evaluation so far, only training evaluation.' \
+                            'Training the first agents with SB3.' \
                             '' \
                             'Optimized RSI to guarantee optimal ground contact during initialization.'
 
@@ -40,7 +41,7 @@ PEAK_JOINT_TORQUES = [300]*4 # [50]*3 + [5] # [300, 300, 300, 300] #
 # -----------------------------
 
 # number of training steps = samples to collect [in Millions]
-MIO_SAMPLES = 4
+MIO_SAMPLES = 8
 # how many parallel environments should be used to collect samples
 N_PARALLEL_ENVS = 8
 # network hidden layer sizes

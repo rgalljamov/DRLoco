@@ -11,18 +11,6 @@ from stable_baselines3 import PPO
 from stable_baselines3.ppo.policies import MlpPolicy
 
 
-def run_tensorboard():
-    import os, threading
-    print('You can start tensorboard with the following command:\n'
-          'tensorboard --logdir="' + cfg.save_path + 'tb_logs/"')
-    tb_path = '/home/rustam/anaconda3/envs/drl/bin/tensorboard ' if utils.is_remote() \
-        else '/home/rustam/.conda/envs/tensorflow/bin/tensorboard '
-    tb_thread = threading.Thread(
-        target=lambda: os.system(tb_path + '--logdir="' + cfg.save_path + 'tb_logs/"'),
-        daemon=True)
-    tb_thread.start()
-
-
 def init_wandb(model):
     batch_size = model.n_steps * model.n_envs
     params = {
@@ -70,10 +58,8 @@ def init_wandb(model):
     if cfg.is_mod(cfg.MOD_E2E_ENC_OBS):
         params['enc_layers'] = cfg.enc_layer_sizes
 
-    USE_WANDB = False
-    if USE_WANDB:
-        wandb.init(config=params, sync_tensorboard=True, name=cfg.get_wb_run_name(),
-                   project=cfg.wb_project_name, notes=cfg.wb_run_notes)
+    wandb.init(config=params, sync_tensorboard=True, name=cfg.get_wb_run_name(),
+               project=cfg.wb_project_name, notes=cfg.wb_run_notes)
 
 
 def train():
@@ -111,18 +97,17 @@ def train():
                        tensorboard_log=cfg.save_path + 'tb_logs/')
 
     # init wandb
-    if not cfg.DEBUG: init_wandb(model)
-
-    # automatically launch tensorboard, only if wandb is not used!
-    # otherwise wandb automatically uploads all TB logs to wandb
-    run_tensorboard()
+    if not cfg.DEBUG:
+        USE_WANDB = True
+        if USE_WANDB:
+            init_wandb(model)
 
     # save model and weights before training
     if False and not cfg.DEBUG:
         utils.save_model(model, cfg.save_path, cfg.init_checkpoint)
 
     # train model
-    model.learn(total_timesteps=training_timesteps) # , callback=TrainingMonitor())
+    model.learn(total_timesteps=training_timesteps, callback=TrainingMonitor())
 
     # save model after training
     utils.save_model(model, cfg.save_path, cfg.final_checkpoint)

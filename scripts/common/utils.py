@@ -247,6 +247,28 @@ def load_env(checkpoint, save_path, env_id):
     # env.load(env_path)
     return env
 
+
+def autolaunch_tensorboard(model_save_path, just_print_instructions=False):
+    """ Automatically launches TensorBoard of just prints instructions on how to do so.
+        @param model_save_path: the path of the folder where the model is stored.
+                                Tensorboard event files are expected to be in the subfolder 'tb_logs/'
+    """
+    if just_print_instructions:
+        # print instructions on how to start and run tensorboard
+        print('You can start tensorboard with the following command:\n'
+              'tensorboard --logdir="' + model_save_path + 'tb_logs/"\n')
+        return
+
+    # automatically launch tensorboard
+    import os, threading
+    tb_path = '/home/rustam/anaconda3/envs/torch/bin/tensorboard ' if is_remote() \
+        else '/home/rustam/.conda/envs/tensorflow/bin/tensorboard '
+    tb_thread = threading.Thread(
+        target=lambda: os.system(tb_path + '--logdir="' + model_save_path + 'tb_logs/"' + ' --bind_all'),
+        daemon=True)
+    tb_thread.start()
+
+
 def smooth_exponential(data, alpha=0.9):
     smoothed = np.copy(data)
     for t in range(1, len(data)):
