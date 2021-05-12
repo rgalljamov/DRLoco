@@ -186,7 +186,7 @@ def save_model(model, path, checkpoint, full=False):
     :param full: if True, also save network weights and upload model to wandb
     """
     model_path = path + f'models/model_{checkpoint}.zip'
-    model.save(save_path=model_path)
+    model.save(model_path)
     # save Running mean of observations and reward
     env_path = path + f'envs/env_{checkpoint}'
     model.get_env().save(env_path)

@@ -76,7 +76,7 @@ class TrainingMonitor(BaseCallback):
 
         if self.n_steps_after_eval >= EVAL_INTERVAL and not cfg.DEBUG:
             self.n_steps_after_eval = 0
-            walking_stably = False # self.eval_walking()
+            walking_stably = self.eval_walking()
             # terminate training when stable walking has been learned
             if walking_stably:
                 import wandb
@@ -281,7 +281,7 @@ class TrainingMonitor(BaseCallback):
         mimic_env.activate_evaluation()
 
         # load the saved model with the evaluation environment
-        eval_model = PPO.load(load_path=model_path)
+        eval_model = PPO.load(model_path)
 
         # evaluate deterministically
         utils.log(f'Starting model evaluation, checkpoint {checkpoint}')
@@ -432,7 +432,7 @@ def callback(_locals, _globals):
         # save the model and environment only for every second update (every 400k steps)
         if n_updates % (2*saving_interval) == 0:
             # save model
-            model.save(save_path=cfg.save_path + 'models/model_' + str(n_updates))
+            model.save(path=cfg.save_path + 'models/model_' + str(n_updates))
             # save env
             env_path = cfg.save_path + 'envs/' + 'env_' + str(n_updates)
             makedirs(env_path)

@@ -98,12 +98,14 @@ def train():
 
     # init wandb
     if not cfg.DEBUG:
-        USE_WANDB = True
-        if USE_WANDB:
-            init_wandb(model)
+        init_wandb(model)
+
+    # print model path and modification parameters
+    utils.log('Trained Model',
+              ['Model: ' + cfg.save_path, 'Modifications: ' + cfg.modification])
 
     # save model and weights before training
-    if False and not cfg.DEBUG:
+    if not cfg.DEBUG:
         utils.save_model(model, cfg.save_path, cfg.init_checkpoint)
 
     # train model

@@ -12,8 +12,9 @@ MAX_EPISODE_STEPS = 3000
 # TODO: remove COM reward, train longer with smaller LR decay, use exp clip_range sched
 # configure Weights & Biases
 WB_PROJECT_NAME = 'torch_migration'
-WB_EXPERIMENT_NAME = 'TORCH - BSLN - 8M'
-WB_EXPERIMENT_DESCRIPTION = 'No walking evaluation so far, only training evaluation.' \
+WB_EXPERIMENT_NAME = 'DEBUG: TORCH - BSLN - 8M'
+WB_EXPERIMENT_DESCRIPTION = 'Saving and loading environment for evaluation. ' \
+                            'No walking evaluation so far, only training evaluation.' \
                             'Training the first agents with SB3.' \
                             '' \
                             'Optimized RSI to guarantee optimal ground contact during initialization.'
