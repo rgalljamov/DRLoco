@@ -89,7 +89,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         action = self.rescale_actions(action)
 
         # when we're mirroring the policy (phase based mirroring), mirror the action
-        if cfg.is_mod(cfg.MOD_MIRR_PHASE) and self.refs.is_step_left():
+        if cfg.is_mod(cfg.MOD_MIRR_POLICY) and self.refs.is_step_left():
             action = self.mirror_action(action)
 
         # execute simulation with desired action for multiple steps
@@ -367,14 +367,14 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         obs = np.concatenate([np.array([phase, self.desired_walking_speed]), qpos, qvel]).ravel()
 
         # when we mirror the policy (phase based mirr), mirror left step
-        if cfg.is_mod(cfg.MOD_MIRR_PHASE) and self.refs.is_step_left():
+        if cfg.is_mod(cfg.MOD_MIRR_POLICY) and self.refs.is_step_left():
             obs = self.mirror_obs(obs)
 
         return obs
 
 
     def mirror_obs(self, obs):
-        is3d = cfg.IS3D
+        is3d = True
         if is3d:
             # 3D Walker obs indices:
             #           0: phase, 1: des_vel, 2: com_y, 3: com_z,

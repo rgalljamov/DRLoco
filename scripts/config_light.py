@@ -12,13 +12,18 @@ MAX_EPISODE_STEPS = 3000
 # TODO: remove COM reward, train longer with smaller LR decay, use exp clip_range sched
 # configure Weights & Biases
 WB_PROJECT_NAME = 'torch_migration'
-WB_EXPERIMENT_NAME = 'DEBUG: TORCH - BSLN - 8M'
-WB_EXPERIMENT_DESCRIPTION = 'Saving and loading environment for evaluation. ' \
-                            'No walking evaluation so far, only training evaluation.' \
+WB_EXPERIMENT_DESCRIPTION = '' \
+                            'One agent is trained in parallel on 8 envs using CPU and 8 threads. ' \
+                            '' \
+                            'Use default entropy coefficient. ' \
+                            'Use tanh instead of relu for hidden layer activations. ' \
+                            'Training longer but reducing the LR faster!' \
+                            'Mirroring the policy and training only for 4M steps!' \
+                            'Halved the batchsize to 16k.' \
                             'Training the first agents with SB3.' \
                             '' \
                             'Optimized RSI to guarantee optimal ground contact during initialization.'
-
+print('DESCRIPTION: \n', WB_EXPERIMENT_DESCRIPTION)
 # -----------------------------
 # Simulation Environment
 # -----------------------------
@@ -42,7 +47,7 @@ PEAK_JOINT_TORQUES = [300]*4 # [50]*3 + [5] # [300, 300, 300, 300] #
 # -----------------------------
 
 # number of training steps = samples to collect [in Millions]
-MIO_SAMPLES = 8
+MIO_SAMPLES = 10
 # how many parallel environments should be used to collect samples
 N_PARALLEL_ENVS = 8
 # network hidden layer sizes
@@ -50,4 +55,4 @@ hid_layer_sizes_vf = [512]*2
 hid_layer_sizes_pi = [512]*2
 # LR decay slope scaling: slope = lr_scale * (lr_final - lr_start)
 # the decay is linear from lr_start to lr_final
-lr_scale = 1
+lr_scale = 2
