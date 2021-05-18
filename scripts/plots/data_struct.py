@@ -69,7 +69,6 @@ class Approach:
         metrics_path = self.path + 'metrics.npz'
         data_is_on_disc = os.path.exists(metrics_path)
         if data_is_on_disc:
-            from scripts.plots.compare import MET_SUM_SCORE, MET_STEPS_TO_CONV
             from scripts.common.callback import EVAL_INTERVAL_RARE
             self.metrics = []
             npz = np.load(metrics_path)
@@ -122,7 +121,6 @@ class Approach:
 
 
     def get_table_metrics(self):
-        from scripts.plots.compare import MET_SUM_SCORE, MET_STEP_REW
         for metric in self.metrics:
             if metric.label == MET_SUM_SCORE:
                 self.final_sum_scores = metric.data[:, -1]
