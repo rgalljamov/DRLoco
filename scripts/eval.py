@@ -4,7 +4,6 @@ import numpy as np
 from scripts.common import utils
 from scripts.common import config as cfg
 from gym_mimic_envs.monitor import Monitor as EnvMonitor
-from gym_mimic_envs.mujoco.mimic_walker2d import MimicWalker2dEnv
 
 from stable_baselines3 import PPO
 plt = utils.import_pyplot()
