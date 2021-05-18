@@ -10,7 +10,7 @@ from gym_mimic_envs.mujoco.mimic_walker2d import MimicWalker2dEnv
 from stable_baselines3 import PPO2
 from scripts.common.utils import load_env
 from scripts.common import config as cfg
-from scripts import config_light as cfgl
+from scripts import config as cfgl
 
 # paths
 # PD baseline

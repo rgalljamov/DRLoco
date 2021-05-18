@@ -3,13 +3,12 @@ Interface for environments using reference trajectories.
 '''
 import gym, mujoco_py
 import numpy as np
-from os.path import join, dirname
 from gym.envs.mujoco.mujoco_env import MujocoEnv
-from scripts import config_light as cfgl
-from scripts.common import config as cfg
+from scripts.config import config as cfgl
+from scripts.config import hypers as cfg
 from scripts.common.utils import log, is_remote, \
-    exponential_running_smoothing as smooth, resetExponentialRunningSmoothing as reset_smooth
-from scripts.mocap.ref_trajecs import ReferenceTrajectories as RefTrajecs
+    exponential_running_smoothing as smooth
+from scripts.ref_trajecs import ReferenceTrajectories as RefTrajecs
 
 
 

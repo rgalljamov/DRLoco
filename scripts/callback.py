@@ -3,7 +3,8 @@ import numpy as np
 import wandb
 
 from stable_baselines3 import PPO
-from scripts.common import config as cfg, utils
+from scripts.config import hypers as cfg
+from scripts.common import utils
 from torch.utils.tensorboard import SummaryWriter
 from stable_baselines3.common.callbacks import BaseCallback
 

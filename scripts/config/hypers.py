@@ -8,7 +8,7 @@ sys.path.append('/home/rustam/code/torch/')
 
 import numpy as np
 from scripts.common import utils
-from scripts import config_light as cfgl
+from scripts.config import config as cfgl
 
 # make torch using the CPU instead of the GPU by default
 if cfgl.USE_CPU:

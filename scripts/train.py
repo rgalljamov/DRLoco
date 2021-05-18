@@ -1,9 +1,10 @@
 import os.path
 import wandb
 from scripts import eval
-from scripts.common import config as cfg, utils
+from scripts.config import hypers as cfg
+from scripts.common import utils
 from scripts.common.schedules import LinearDecay, ExponentialSchedule
-from scripts.common.callback import TrainingMonitor
+from scripts.callback import TrainingMonitor
 # from scripts.common.distributions import LOG_STD_MIN, LOG_STD_MAX
 
 # from scripts.algos.custom_ppo2 import CustomPPO2

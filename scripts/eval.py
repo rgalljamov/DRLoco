@@ -2,7 +2,7 @@ import os.path
 import glob, wandb
 import numpy as np
 from scripts.common import utils
-from scripts.common import config as cfg
+from scripts.config import hypers as cfg
 from gym_mimic_envs.monitor import Monitor as EnvMonitor
 
 from stable_baselines3 import PPO

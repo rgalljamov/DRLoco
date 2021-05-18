@@ -9,7 +9,7 @@ Script to handle reference trajectories.
 import random
 import numpy as np
 import scipy.io as spio
-from scripts.common.config import is_mod, MOD_REFS_RAMP, MOD_SYMMETRIC_WALK, \
+from scripts.config.hypers import is_mod, MOD_REFS_RAMP, MOD_SYMMETRIC_WALK, \
     SKIP_N_STEPS, STEPS_PER_VEL, EVAL_N_TIMES, CTRL_FREQ
 from scripts.common.utils import log, is_remote, config_pyplot, smooth_exponential
 
