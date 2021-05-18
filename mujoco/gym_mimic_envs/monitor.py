@@ -162,7 +162,7 @@ class Monitor(gym.Wrapper):
                 if self.left_step_distrib is None:
                     from scripts.common import config as cfg
                     npz = np.load(cfg.abs_project_path +
-                                  'assets/ref_trajecs/distributions/2d_distributions_const_speed_400hz.npz')
+                                  'assets/mocaps/distributions/2d_distributions_const_speed_400hz.npz')
                     self.left_step_distrib = [npz['means_left'], npz['stds_left']]
                     self.right_step_distrib = [npz['means_right'], npz['stds_right']]
                     self.step_len = min(self.left_step_distrib[0].shape[1], self.right_step_distrib[0].shape[1])
