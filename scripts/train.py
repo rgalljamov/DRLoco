@@ -85,12 +85,12 @@ def train():
 
     import torch as th
     network_args = {'net_arch': [{'vf': cfg.hid_layer_sizes_vf, 'pi': cfg.hid_layer_sizes_pi}],
-                    'activation_fn': th.nn.ReLU} if not cfg.is_mod(cfg.MOD_CUSTOM_POLICY) else {}
+                    'activation_fn': th.nn.Tanh} if not cfg.is_mod(cfg.MOD_CUSTOM_POLICY) else {}
 
     model = PPO(MlpPolicy,
                        env, verbose=1, n_steps=int(cfg.batch_size/cfg.n_envs),
                        policy_kwargs=network_args,
-                       learning_rate=learning_rate_schedule, ent_coef=cfg.ent_coef,
+                       learning_rate=learning_rate_schedule, # ent_coef=cfg.ent_coef,
                        gamma=cfg.gamma, n_epochs=cfg.noptepochs,
                        clip_range_vf=clip_schedule if cfg.is_mod(cfg.MOD_CLIPRANGE_SCHED) else cfg.cliprange,
                        clip_range=clip_schedule if cfg.is_mod(cfg.MOD_CLIPRANGE_SCHED) else cfg.cliprange,
@@ -101,6 +101,7 @@ def train():
         init_wandb(model)
 
     # print model path and modification parameters
+    utils.log('RUN DESCRIPTION: \n' + cfg.wb_run_notes)
     utils.log('Trained Model',
               ['Model: ' + cfg.save_path, 'Modifications: ' + cfg.modification])
 
