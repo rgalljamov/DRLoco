@@ -51,7 +51,11 @@ class TrainingMonitor(BaseCallback):
         self.env = self.training_env
         # setup and launch tensorboard
         self.tb = SummaryWriter(log_dir=cfg.save_path + 'tb_logs/PPO_1', filename_suffix='_OWN_LOGS')
-        utils.autolaunch_tensorboard(cfg.save_path, just_print_instructions=False)
+        utils.autolaunch_tensorboard(cfg.save_path, just_print_instructions=True)
+
+    def _on_training_end(self):
+        # stop logging to TB by stopping the SummaryWriter()
+        self.tb.close()
 
     def _on_step(self) -> bool:
         if cfg.DEBUG and self.num_timesteps > cfg.MAX_DEBUG_STEPS:
@@ -127,6 +131,7 @@ class TrainingMonitor(BaseCallback):
     def log_scalar(self, tag, value):
         """Logs a scalar value to TensorBoard."""
         self.tb.add_scalar(tag, value, self.num_timesteps)
+
 
     def log_to_tb(self, mean_rew, ep_len, ep_ret):
         # get the current policy

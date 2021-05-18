@@ -4,7 +4,7 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 warnings.filterwarnings('ignore', category=DeprecationWarning)
 
 # workaround to start scripts from cmd on remote server
-sys.path.append('/home/rustam/code/remote/')
+sys.path.append('/home/rustam/code/torch/')
 
 import numpy as np
 from scripts.common import utils
