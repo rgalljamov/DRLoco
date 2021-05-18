@@ -4,6 +4,8 @@
 
 # don't sync with W&B in debug mode, log additional information etc.
 DEBUG_TRAINING = False
+# determine if Pytorch should use CPU or GPU
+USE_CPU = False
 # maximum walking distance after which the episode is terminated
 MAX_WALKING_DISTANCE = 20
 # maximum length of an episode
@@ -11,14 +13,18 @@ MAX_EPISODE_STEPS = 3000
 
 # TODO: remove COM reward, train longer with smaller LR decay, use exp clip_range sched
 # configure Weights & Biases
-WB_PROJECT_NAME = 'torch_migration'
-WB_EXPERIMENT_NAME = 'BSLN - 4M - TF - NEW project'
-WB_EXPERIMENT_DESCRIPTION = 'Halved the number of training steps.' \
-                            'Getting the current state. Check if we still can train and run agents.' \
+WB_PROJECT_NAME = 'torch_speed_test'
+WB_EXPERIMENT_NAME = 'GPU + 8envs' # 'CPU+8THRDS' #  - DfltEntropy + MRR PY + Tanh + 1/2 BS - 10M - 2xLR_scale'
+WB_EXPERIMENT_DESCRIPTION = '' \
                             '' \
-                            'Using even more weaker motors for the upper joints.' \
-                            'Optimized RSI to guarantee optimal ground contact during initialization.' \
-                            'Walking slowly with the small walker.'
+                            'Use default entropy coefficient. ' \
+                            'Use tanh instead of relu for hidden layer activations. ' \
+                            'Training longer but reducing the LR faster!' \
+                            'Mirroring the policy and training only for 4M steps!' \
+                            'Halved the batchsize to 16k.' \
+                            'Training the first agents with SB3.' \
+                            '' \
+                            'Optimized RSI to guarantee optimal ground contact during initialization.'
 
 # -----------------------------
 # Simulation Environment
@@ -43,7 +49,7 @@ PEAK_JOINT_TORQUES = [300]*4 # [50]*3 + [5] # [300, 300, 300, 300] #
 # -----------------------------
 
 # number of training steps = samples to collect [in Millions]
-MIO_SAMPLES = 4
+MIO_SAMPLES = 10
 # how many parallel environments should be used to collect samples
 N_PARALLEL_ENVS = 8
 # network hidden layer sizes
@@ -51,4 +57,4 @@ hid_layer_sizes_vf = [512]*2
 hid_layer_sizes_pi = [512]*2
 # LR decay slope scaling: slope = lr_scale * (lr_final - lr_start)
 # the decay is linear from lr_start to lr_final
-lr_scale = 1
+lr_scale = 2

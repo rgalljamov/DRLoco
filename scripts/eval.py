@@ -6,13 +6,8 @@ from scripts.common import config as cfg
 from gym_mimic_envs.monitor import Monitor as EnvMonitor
 from gym_mimic_envs.mujoco.mimic_walker2d import MimicWalker2dEnv
 
-# to decrease the amount of deprecation warnings
-import tensorflow as tf
-tf.logging.set_verbosity(tf.logging.ERROR)
-
-from stable_baselines import PPO2
+from stable_baselines3 import PPO
 plt = utils.import_pyplot()
-
 
 RENDER = True and not utils.is_remote()
 NO_ET = True
@@ -55,15 +50,15 @@ def eval_model(from_config=True):
     else:
         save_path = cfg.save_path_norun + f'{run_id}/'
 
-    # load model
-    model_path = save_path + f'models/model_{checkpoint}.zip'
-    model = PPO2.load(load_path=model_path)
-
-    print('\nModel:\n', model_path + '\n')
-
     env = utils.load_env(checkpoint, save_path, cfg.env_id)
     mimic_env = env.venv.envs[0]
     mimic_env.activate_evaluation()
+
+    # load model
+    model_path = save_path + f'models/model_{checkpoint}.zip'
+    model = PPO.load(model_path, env)
+
+    print('\nModel:\n', model_path + '\n')
 
     ep_rewards, all_returns, ep_durations = [], [], []
     all_rewards = np.zeros((n_eps, rec_n_steps))
@@ -121,19 +116,21 @@ def eval_model(from_config=True):
     np.save(metrics_path + '/ep_returns', all_returns)
     np.save(metrics_path + '/ep_durations_' + str(int(np.mean(ep_durations))), ep_durations)
 
-    # count and save number of parameters in the model
-    num_policy_params = np.sum([np.prod(tensor.get_shape().as_list())
-                                for tensor in model.params if 'pi' in tensor.name])
-    num_valfunc_params = np.sum([np.prod(tensor.get_shape().as_list())
-                                for tensor in model.params if 'vf' in tensor.name])
-    num_params = np.sum([np.prod(tensor.get_shape().as_list())
-                         for tensor in model.params])
+    SAVE_NUM_OF_PARAMS = False
+    if SAVE_NUM_OF_PARAMS:
+        # count and save number of parameters in the model
+        num_policy_params = np.sum([np.prod(tensor.get_shape().as_list())
+                                    for tensor in model.params if 'pi' in tensor.name])
+        num_valfunc_params = np.sum([np.prod(tensor.get_shape().as_list())
+                                    for tensor in model.params if 'vf' in tensor.name])
+        num_params = np.sum([np.prod(tensor.get_shape().as_list())
+                             for tensor in model.params])
 
-    count_params_dict = {'n_pi_params': num_policy_params, 'n_vf_params':num_valfunc_params,
-                         'n_params': num_params}
+        count_params_dict = {'n_pi_params': num_policy_params, 'n_vf_params':num_valfunc_params,
+                             'n_params': num_params}
 
-    np.save(metrics_path + '/weights_count', count_params_dict)
-    print(count_params_dict)
+        np.save(metrics_path + '/weights_count', count_params_dict)
+        print(count_params_dict)
 
     # mark special episodes
     ep_best = np.argmax(all_returns)
@@ -152,8 +149,55 @@ def eval_model(from_config=True):
 
     record_video(model, checkpoint, all_returns, relevant_eps)
 
-
 def record_video(model, checkpoint, all_returns, relevant_eps):
+    utils.log("Preparing video recording!")
+
+    import pyvirtualdisplay
+
+    # Creates a virtual display for OpenAI gym
+    pyvirtualdisplay.Display(visible=1, size=(1400, 900)).start()
+
+    # import the video recorder
+    from stable_baselines3.common.vec_env import VecVideoRecorder
+
+    env_id = cfg.env_id
+
+    import gym
+    from stable_baselines3.common.vec_env import VecVideoRecorder, DummyVecEnv
+    env = DummyVecEnv([lambda: gym.make(env_id)])
+
+    # load the environment
+    # env = utils.load_env(checkpoint, cfg.save_path, cfg.env_id)
+    # mimic_env = env.venv.envs[0].env
+    # mimic_env.activate_evaluation()
+
+    # build the video path
+    pi_string = 'determin' if DETERMINISTIC_ACTIONS else 'stochastic'
+    video_path = cfg.save_path + 'videos_' + pi_string
+
+    # setup the video recording
+    env = VecVideoRecorder(env, video_path,
+                           record_video_trigger=lambda x: x >= 0,
+                           video_length=100)
+
+    obs = env.reset()
+    for _ in range(101):
+        action, hid_states = model.predict(obs, deterministic=DETERMINISTIC_ACTIONS)
+        action =  [env.action_space.sample()]
+        obs, reward, done, info = env.step(action)
+        env.render()
+        # only reset when agent has fallen
+        # if has_fallen(mimic_env):
+        #     video_env.reset()
+
+    # Save the video
+    env.close()
+
+
+
+
+
+def record_video_OLD(model, checkpoint, all_returns, relevant_eps):
     """ GENERATE VIDEOS of different performances (best, worst, mean)
 
     # The idea is to understand the agent by observing his behavior
@@ -163,7 +207,7 @@ def record_video(model, checkpoint, all_returns, relevant_eps):
     """
 
     # import the video recorder
-    from stable_baselines.common.vec_env import VecVideoRecorder
+    from stable_baselines3.common.vec_env import VecVideoRecorder
 
     utils.log("Preparing video recording!")
 
@@ -247,6 +291,7 @@ def record_video(model, checkpoint, all_returns, relevant_eps):
     utils.log('MP4 Paths:', mp4_paths)
     wandb.log({"video": wandb.Video(mp4_paths[0], fps=16, format='gif')})
     # wandb.log({"video": wandb.Video(mp4_paths[1], fps=4, format='mp4')})
+
 
 def has_fallen(mimic_env):
     com_z_pos = mimic_env.data.qpos[mimic_env._get_COM_indices()[-1]]

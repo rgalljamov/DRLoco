@@ -1,4 +1,3 @@
-import tensorflow as tf
 from scripts.common import config as cfg
 from scripts.common.utils import log
 from scripts.behavior_cloning.models import load_weights

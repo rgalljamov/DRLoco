@@ -4,11 +4,22 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 warnings.filterwarnings('ignore', category=DeprecationWarning)
 
 # workaround to start scripts from cmd on remote server
-sys.path.append('/home/rustam/code/remote/')
+sys.path.append('/home/rustam/code/torch/')
 
 import numpy as np
 from scripts.common import utils
 from scripts import config_light as cfgl
+
+# make torch using the CPU instead of the GPU by default
+if cfgl.USE_CPU:
+    from os import environ
+    # fool python to think there is no CUDA device
+    environ["CUDA_VISIBLE_DEVICES"]=""
+    # to avoid massive slow-down when using torch with cpu
+    import torch
+    n_envs = cfgl.N_PARALLEL_ENVS
+    torch.set_num_threads(n_envs if n_envs<=16 else 8)
+
 
 def s(input):
     """ improves conversion of digits to strings """
@@ -101,7 +112,7 @@ l2_coef = 5e-4
 # set a fixed logstd of the policy
 MOD_CONST_EXPLORE = 'const_explor'
 # learn policy for right step only, mirror states and actions for the left step
-MOD_MIRR_PHASE = 'mirr_phase'
+MOD_MIRR_POLICY = 'mirr_py'
 MOD_EXP_REPLAY = 'exp_replay'
 replay_buf_size = 1
 
@@ -117,6 +128,7 @@ CTRL_FREQ = cfgl.CTRL_FREQ
 modification = MOD_CUSTOM_POLICY + '/'
 # HERE modifications can be added
 modification += mod([MOD_MIRROR_EXPS])
+modification = 'sb3/' + mod([MOD_MIRR_POLICY]) # mod([MOD_CLIPRANGE_SCHED]) #
 
 # ----------------------------------------------------------------------------------
 # Weights and Biases
@@ -185,9 +197,9 @@ mio_samples = cfgl.MIO_SAMPLES
 if mirr_exps: mio_samples *= 2
 n_envs = cfgl.N_PARALLEL_ENVS if utils.is_remote() and not DEBUG else 2
 minibatch_size = 512 * 4
-batch_size = (4096 * 4 * (2 if not mirr_exps else 1)) if not DEBUG else 2*minibatch_size
+batch_size = (4096 * 2 * (2 if not mirr_exps else 1)) if not DEBUG else 2*minibatch_size
 # to make PHASE based mirroring comparable with DUP, reduce the batch size
-if is_mod(MOD_MIRR_PHASE): batch_size = int(batch_size / 2)
+if is_mod(MOD_MIRR_POLICY): batch_size = int(batch_size / 2)
 # if using a replay buffer, we have to collect less experiences
 # to reach the same batch size
 if exp_replay: batch_size = int(batch_size/(replay_buf_size+1))
@@ -208,9 +220,6 @@ _mod_path = ('debug/' if DEBUG else '') + \
             f'{algo}/{mio_samples}mio/'
 save_path_norun= abs_project_path + 'models/' + _mod_path
 save_path = save_path_norun + f'{run_id}/'
-
-print('Model: ', save_path)
-print('Modification:', modification)
 
 # wandb
 def get_wb_run_name():

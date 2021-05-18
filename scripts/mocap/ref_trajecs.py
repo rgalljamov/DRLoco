@@ -37,7 +37,7 @@ PATH_REF_TRAJECS = assets_path + \
 SAMPLE_FREQ = 400
 assert str(SAMPLE_FREQ) in PATH_REF_TRAJECS, 'Have you set the right sample frequency!?'
 
-log('Trajecs Path:\n' + PATH_REF_TRAJECS)
+# log('Trajecs Path:\n' + PATH_REF_TRAJECS)
 
 # is the trajectory with the constant speed chosen?
 _is_constant_speed = PATH_CONSTANT_SPEED in PATH_REF_TRAJECS

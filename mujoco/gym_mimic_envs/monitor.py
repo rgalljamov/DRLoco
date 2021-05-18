@@ -4,7 +4,7 @@ import seaborn as sns
 from scripts.common.utils import config_pyplot, is_remote, \
     exponential_running_smoothing as smooth, change_plot_properties
 from gym_mimic_envs.mimic_env import MimicEnv
-from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv, VecNormalize
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecNormalize
 
 # length of the buffer containing sim and ref trajecs for comparison
 _trajec_buffer_length = 2000

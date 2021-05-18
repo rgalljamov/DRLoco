@@ -1,11 +1,11 @@
 from os import makedirs, remove, rename
-import tensorflow as tf
 import numpy as np
 import wandb
 
-from stable_baselines import PPO2
+from stable_baselines3 import PPO
 from scripts.common import config as cfg, utils
-from stable_baselines.common.callbacks import BaseCallback
+from torch.utils.tensorboard import SummaryWriter
+from stable_baselines3.common.callbacks import BaseCallback
 
 # define intervals/criteria for saving the model
 # save everytime the agent achieved an additional 10% of the max possible return
@@ -49,6 +49,13 @@ class TrainingMonitor(BaseCallback):
 
     def _on_training_start(self) -> None:
         self.env = self.training_env
+        # setup and launch tensorboard
+        self.tb = SummaryWriter(log_dir=cfg.save_path + 'tb_logs/PPO_1', filename_suffix='_OWN_LOGS')
+        utils.autolaunch_tensorboard(cfg.save_path, just_print_instructions=True)
+
+    def _on_training_end(self):
+        # stop logging to TB by stopping the SummaryWriter()
+        self.tb.close()
 
     def _on_step(self) -> bool:
         if cfg.DEBUG and self.num_timesteps > cfg.MAX_DEBUG_STEPS:
@@ -121,67 +128,51 @@ class TrainingMonitor(BaseCallback):
         except: return 0.333
 
 
+    def log_scalar(self, tag, value):
+        """Logs a scalar value to TensorBoard."""
+        self.tb.add_scalar(tag, value, self.num_timesteps)
+
+
     def log_to_tb(self, mean_rew, ep_len, ep_ret):
+        # get the current policy
+        model = self.model
+
         moved_distance = self.get_mean('moved_distance_smooth')
         mean_abs_torque_smoothed = self.get_mean('mean_abs_ep_torque_smoothed')
 
-        # Log scalar values
-        NEW_LOG_STRUCTURE = True
-        if NEW_LOG_STRUCTURE:
-            logs = [
-                tf.Summary.Value(tag='_det_eval/1. Summary Score',
-                                 simple_value=self.summary_score),
-                tf.Summary.Value(tag='_det_eval/2. stable walks count',
-                                 simple_value=self.count_stable_walks),
-                tf.Summary.Value(tag='_det_eval/4. mean eval distance',
-                                 simple_value=self.mean_walked_distance),
-                tf.Summary.Value(tag='_det_eval/5. MIN eval distance',
-                                 simple_value=self.min_walked_distance),
-                tf.Summary.Value(tag='_det_eval/3. mean step reward',
-                                 simple_value=self.mean_reward_means),
-                tf.Summary.Value(tag='_det_eval/6. mean episode duration',
-                                 simple_value=self.mean_episode_duration),
-                # tf.Summary.Value(tag='_det_eval/6. MIN episode duration',
-                #                  simple_value=self.min_episode_duration),
-                tf.Summary.Value(tag='_det_eval/7. mean walking speed',
-                                 simple_value=self.mean_walking_speed),
-                # tf.Summary.Value(tag='_det_eval/8. MIN walking speed',
-                #                  simple_value=self.min_walking_speed),
+        self.log_scalar('_det_eval/1. Summary Score', self.summary_score),
+        self.log_scalar('_det_eval/2. stable walks count', self.count_stable_walks),
+        self.log_scalar('_det_eval/4. mean eval distance', self.mean_walked_distance),
+        self.log_scalar('_det_eval/5. MIN eval distance', self.min_walked_distance),
+        self.log_scalar('_det_eval/3. mean step reward', self.mean_reward_means),
+        self.log_scalar('_det_eval/6. mean episode duration', self.mean_episode_duration),
+        self.log_scalar('_det_eval/7. mean walking speed', self.mean_walking_speed),
 
-                # tf.Summary.Value(tag='_monit/1. ',
-                #                  simple_value=),
+        self.log_scalar('_train/1. moved distance (stochastic, smoothed 0.25)',
+                         moved_distance/cfg.max_distance),
+        self.log_scalar('_train/2. episode length (smoothed 0.75)',
+                         ep_len/cfg.ep_dur_max),
+        self.log_scalar('_train/3. step reward (smoothed 0.25)',
+                         (mean_rew-cfg.alive_bonus)/cfg.rew_scale),
+        self.log_scalar('_train/4. episode return (smoothed 0.75)',
+                         (ep_ret-ep_len*cfg.alive_bonus)/(cfg.ep_dur_max*cfg.rew_scale)),
 
-                tf.Summary.Value(tag='_train/1. moved distance (stochastic, smoothed 0.25)',
-                                 simple_value=moved_distance/cfg.max_distance),
-                tf.Summary.Value(tag='_train/2. episode length (smoothed 0.75)',
-                                 simple_value=ep_len/cfg.ep_dur_max),
-                tf.Summary.Value(tag='_train/3. step reward (smoothed 0.25)',
-                                 simple_value=(mean_rew-cfg.alive_bonus)/cfg.rew_scale),
-                tf.Summary.Value(tag='_train/4. episode return (smoothed 0.75)',
-                                 simple_value=(ep_ret-ep_len*cfg.alive_bonus)/(cfg.ep_dur_max*cfg.rew_scale)),
+        # log reward components
+        mean_ep_pos_rew = self.get_mean('mean_ep_pos_rew_smoothed')
+        mean_ep_vel_rew = self.get_mean('mean_ep_vel_rew_smoothed')
+        mean_ep_com_rew = self.get_mean('mean_ep_com_rew_smoothed')
+        self.log_scalar(f'_rews/1. mean ep pos rew ({cfg.n_envs}envs, smoothed 0.9)',
+                                  mean_ep_pos_rew),
+        self.log_scalar(f'_rews/2. mean ep vel rew ({cfg.n_envs}envs, smoothed 0.9)',
+                          mean_ep_vel_rew),
+        self.log_scalar(f'_rews/3. mean ep com rew ({cfg.n_envs}envs, smoothed 0.9)',
+                          mean_ep_com_rew),
 
-                # tf.Summary.Value(tag='acts/2. mean abs episode joint torques (smoothed 0.75)',
-                #                  simple_value=mean_abs_torque_smoothed)
-            ]
-
-            wandb.log({"_det_eval/1. walked distances": wandb.Histogram(
-                np_histogram=np.histogram(self.moved_distances, bins=20))}, step=self.num_timesteps)
-
-            # log reward components
-            mean_ep_pos_rew = self.get_mean('mean_ep_pos_rew_smoothed')
-            mean_ep_vel_rew = self.get_mean('mean_ep_vel_rew_smoothed')
-            mean_ep_com_rew = self.get_mean('mean_ep_com_rew_smoothed')
-            logs += [tf.Summary.Value(tag=f'_rews/1. mean ep pos rew ({cfg.n_envs}envs, smoothed 0.9)',
-                                      simple_value=mean_ep_pos_rew),
-                     tf.Summary.Value(tag=f'_rews/2. mean ep vel rew ({cfg.n_envs}envs, smoothed 0.9)',
-                                      simple_value=mean_ep_vel_rew),
-                     tf.Summary.Value(tag=f'_rews/3. mean ep com rew ({cfg.n_envs}envs, smoothed 0.9)',
-                                      simple_value=mean_ep_com_rew),
-                     ]
-
-            model = self.model
-            parameters = model.get_parameter_list()
-            parameters = [param for param in parameters if 'logstd' in param.name]
+        # log exploration
+        LOG_EXPLORATION = False
+        if LOG_EXPLORATION:
+            parameters = model.get_parameters()
+            parameters = [param for param in parameters if 'logstd' in param]
             if cfg.is_mod(cfg.MOD_CONST_EXPLORE):
                 logstd = cfg.init_logstd
             else:
@@ -190,9 +181,11 @@ class TrainingMonitor(BaseCallback):
             mean_std = np.mean(std)
             std_of_stds = np.std(std)
 
-            logs += [tf.Summary.Value(
-                tag='acts/1. mean std of 8 action distributions', simple_value=mean_std)]
+            self.log_scalar('acts/1. mean std of 8 action distributions', mean_std)
 
+        # log action statistics
+        LOG_ACTION_STATISTICS = False
+        if LOG_ACTION_STATISTICS: # doesn't work in SB3 anymore
             actions = model.last_actions
             if actions is not None:
                 abs_actions = np.abs(actions)
@@ -202,57 +195,51 @@ class TrainingMonitor(BaseCallback):
                 # monitor how many actions were saturated
                 sat_acts_indices = np.where(abs_actions > 0.95)
                 sat_acts_percentage = np.size(sat_acts_indices[0]) / np.size(actions)
-                # std_actions = np.std(abs_actions)
-                logs += [tf.Summary.Value(tag='acts/2. mean abs action (over batch and all dims)',
-                                 simple_value=mean_action),
-                         # tf.Summary.Value(tag='acts/a. mean action (over batch and all dims)',
-                         #                  simple_value=np.mean(actions)),
-                         tf.Summary.Value(tag='acts/4. mean POS action (over batch and all dims)',
-                                 simple_value=np.mean(pos_actions)),
-                         tf.Summary.Value(tag='acts/5. mean NEG action (over batch and all dims)',
-                                 simple_value=np.mean(neg_actions)),
 
-                         tf.Summary.Value(tag='acts/3. saturated actions percentage (all acts in a batch)',
-                                 simple_value=sat_acts_percentage),
-                         # tf.Summary.Value(tag='_own/0. std abs actions (whole batch and all dims)',
-                         #         simple_value=std_actions)
-                         ]
+                self.log_scalar('acts/2. mean abs action (over batch and all dims)', mean_action),
+                self.log_scalar('acts/4. mean POS action (over batch and all dims)',
+                        np.mean(pos_actions)),
+                self.log_scalar('acts/5. mean NEG action (over batch and all dims)',
+                        np.mean(neg_actions)),
+
+                self.log_scalar('acts/3. saturated actions percentage (all acts in a batch)',
+                        sat_acts_percentage),
+
                 wandb.log({"_hist/actions": wandb.Histogram(
                     np_histogram=np.histogram(actions, bins=200))}, step=self.num_timesteps)
 
-                # get ET and RSI phases
-                et_phases = self.env.get_attr('et_phases')
-                et_phases_flat = [phase for env in et_phases for phase in env]
-                # rsi_phases = self.env.get_attr('rsi_phases')
-                # rsi_phases_flat = [phase for env in rsi_phases for phase in env]
+        # log ET and RSI phases
+        et_phases = self.env.get_attr('et_phases')
+        et_phases_flat = [phase for env in et_phases for phase in env]
+        # rsi_phases = self.env.get_attr('rsi_phases')
+        # rsi_phases_flat = [phase for env in rsi_phases for phase in env]
 
-                wandb.log({"_hist/ET_phases": wandb.Histogram(
-                    np_histogram=np.histogram(et_phases_flat, bins=250))}, step=self.num_timesteps)
-                # wandb.log({"_hist/RSI_phases": wandb.Histogram(
-                #     np_histogram=np.histogram(rsi_phases_flat, bins=200))}, step=self.num_timesteps)
-                if len(self.failed_eval_runs_indices) > 0:
-                    wandb.log({"_hist/trials_below_20m": wandb.Histogram(
-                        np_histogram=np.histogram(self.failed_eval_runs_indices,
-                                                  bins=20, range=(0,19)))},
-                        step=self.num_timesteps)
+        wandb.log({"_hist/ET_phases": wandb.Histogram(
+            np_histogram=np.histogram(et_phases_flat, bins=250))}, step=self.num_timesteps)
+        # wandb.log({"_hist/RSI_phases": wandb.Histogram(
+        #     np_histogram=np.histogram(rsi_phases_flat, bins=200))}, step=self.num_timesteps)
+        if len(self.failed_eval_runs_indices) > 0:
+            wandb.log({"_hist/trials_below_20m": wandb.Histogram(
+                np_histogram=np.histogram(self.failed_eval_runs_indices,
+                                          bins=20, range=(0,19)))}, step=self.num_timesteps)
 
-                ep_lens = self.env.get_attr('ep_lens')
-                ep_lens = [ep_len for env_lens in ep_lens for ep_len in env_lens]
-                wandb.log({"_hist/ep_lens": wandb.Histogram(
-                    np_histogram=np.histogram(ep_lens, bins=40))}, step=self.num_timesteps)
+        ep_lens = self.env.get_attr('ep_lens')
+        ep_lens = [ep_len for env_lens in ep_lens for ep_len in env_lens]
+        wandb.log({"_hist/ep_lens": wandb.Histogram(
+            np_histogram=np.histogram(ep_lens, bins=40))}, step=self.num_timesteps)
 
-                difficult_rsi_phases = self.env.get_attr('difficult_rsi_phases')
-                difficult_rsi_phases = [phase for env_phases in difficult_rsi_phases for phase in env_phases]
-                wandb.log({"_hist/difficult_rsi_phases": wandb.Histogram(
-                    np_histogram=np.histogram(difficult_rsi_phases, bins=250, range=(0,1)))},
-                    step=self.num_timesteps)
+        difficult_rsi_phases = self.env.get_attr('difficult_rsi_phases')
+        difficult_rsi_phases = [phase for env_phases in difficult_rsi_phases for phase in env_phases]
+        wandb.log({"_hist/difficult_rsi_phases": wandb.Histogram(
+            np_histogram=np.histogram(difficult_rsi_phases, bins=250, range=(0,1)))},
+            step=self.num_timesteps)
 
-            if False: # np.random.randint(low=1, high=500) == 77:
-                utils.log(f'Logstd after {int(self.num_timesteps/1e3)}k timesteps:',
-                          [f'mean std: {mean_std}', f'std of stds: {std_of_stds}'])
-
-            summary = tf.Summary(value=logs)
-            self.locals['writer'].add_summary(summary, self.num_timesteps)
+        if False: # np.random.randint(low=1, high=500) == 77:
+            utils.log(f'Logstd after {int(self.num_timesteps/1e3)}k timesteps:',
+                      [f'mean std: {mean_std}', f'std of stds: {std_of_stds}'])
+        # log histograms
+        wandb.log({"_det_eval/1. walked distances": wandb.Histogram(
+        np_histogram=np.histogram(self.moved_distances, bins=20))}, step=self.num_timesteps)
 
 
     def save_model_if_good(self, mean_rew, ep_ret):
@@ -288,17 +275,18 @@ class TrainingMonitor(BaseCallback):
         @returns: If the training can be stopped as stable walking was achieved.
         """
         moved_distances, mean_rewards, ep_durs, mean_com_x_vels = [], [], [], []
-        # save current model
+        # save current model and environment
         checkpoint = f'{int(self.num_timesteps/1e5)}'
         model_path, env_path = \
             utils.save_model(self.model, cfg.save_path, checkpoint, full=False)
 
-        # load current model
-        eval_model = PPO2.load(load_path=model_path)
-
+        # load the evaluation environment
         eval_env = utils.load_env(checkpoint, cfg.save_path, cfg.env_id)
         mimic_env = eval_env.venv.envs[0].env
         mimic_env.activate_evaluation()
+
+        # load the saved model with the evaluation environment
+        eval_model = PPO.load(model_path)
 
         # evaluate deterministically
         utils.log(f'Starting model evaluation, checkpoint {checkpoint}')
@@ -449,7 +437,7 @@ def callback(_locals, _globals):
         # save the model and environment only for every second update (every 400k steps)
         if n_updates % (2*saving_interval) == 0:
             # save model
-            model.save(save_path=cfg.save_path + 'models/model_' + str(n_updates))
+            model.save(path=cfg.save_path + 'models/model_' + str(n_updates))
             # save env
             env_path = cfg.save_path + 'envs/' + 'env_' + str(n_updates)
             makedirs(env_path)
