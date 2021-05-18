@@ -10,6 +10,17 @@ import numpy as np
 from scripts.common import utils
 from scripts import config_light as cfgl
 
+# make torch using the CPU instead of the GPU by default
+if cfgl.USE_CPU:
+    from os import environ
+    # fool python to think there is no CUDA device
+    environ["CUDA_VISIBLE_DEVICES"]=""
+    # to avoid massive slow-down when using torch with cpu
+    import torch
+    n_envs = cfgl.N_PARALLEL_ENVS
+    torch.set_num_threads(n_envs if n_envs<=16 else 8)
+
+
 def s(input):
     """ improves conversion of digits to strings """
     if isinstance(input, list):

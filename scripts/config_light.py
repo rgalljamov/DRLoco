@@ -4,6 +4,8 @@
 
 # don't sync with W&B in debug mode, log additional information etc.
 DEBUG_TRAINING = False
+# determine if Pytorch should use CPU or GPU
+USE_CPU = False
 # maximum walking distance after which the episode is terminated
 MAX_WALKING_DISTANCE = 20
 # maximum length of an episode
@@ -11,9 +13,9 @@ MAX_EPISODE_STEPS = 3000
 
 # TODO: remove COM reward, train longer with smaller LR decay, use exp clip_range sched
 # configure Weights & Biases
-WB_PROJECT_NAME = 'torch_migration'
+WB_PROJECT_NAME = 'torch_speed_test'
+WB_EXPERIMENT_NAME = 'GPU + 8envs' # 'CPU+8THRDS' #  - DfltEntropy + MRR PY + Tanh + 1/2 BS - 10M - 2xLR_scale'
 WB_EXPERIMENT_DESCRIPTION = '' \
-                            'One agent is trained in parallel on 8 envs using CPU and 8 threads. ' \
                             '' \
                             'Use default entropy coefficient. ' \
                             'Use tanh instead of relu for hidden layer activations. ' \
@@ -23,7 +25,7 @@ WB_EXPERIMENT_DESCRIPTION = '' \
                             'Training the first agents with SB3.' \
                             '' \
                             'Optimized RSI to guarantee optimal ground contact during initialization.'
-print('DESCRIPTION: \n', WB_EXPERIMENT_DESCRIPTION)
+
 # -----------------------------
 # Simulation Environment
 # -----------------------------
