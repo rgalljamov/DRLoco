@@ -128,7 +128,7 @@ CTRL_FREQ = cfgl.CTRL_FREQ
 modification = MOD_CUSTOM_POLICY + '/'
 # HERE modifications can be added
 modification += mod([MOD_MIRROR_EXPS])
-modification = 'sb3/' + mod([MOD_MIRR_POLICY]) # mod([MOD_CLIPRANGE_SCHED]) #
+modification = 'sb3/' + mod([MOD_REFS_RAMP, MOD_MIRR_POLICY]) # mod([MOD_CLIPRANGE_SCHED]) #
 
 # ----------------------------------------------------------------------------------
 # Weights and Biases

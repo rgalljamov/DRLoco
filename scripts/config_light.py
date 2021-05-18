@@ -13,9 +13,9 @@ MAX_EPISODE_STEPS = 3000
 
 # TODO: remove COM reward, train longer with smaller LR decay, use exp clip_range sched
 # configure Weights & Biases
-WB_PROJECT_NAME = 'torch_speed_test'
-WB_EXPERIMENT_NAME = 'GPU + 8envs' # 'CPU+8THRDS' #  - DfltEntropy + MRR PY + Tanh + 1/2 BS - 10M - 2xLR_scale'
-WB_EXPERIMENT_DESCRIPTION = '' \
+WB_PROJECT_NAME = 'torch_cleanup'
+WB_EXPERIMENT_NAME = 'BSLN: RampRefs + MRR PY + Tanh + 1/2 BS + 10M + 2xLR_scale'
+WB_EXPERIMENT_DESCRIPTION = 'Baseline before starting the cleanup experiments. ' \
                             '' \
                             'Use default entropy coefficient. ' \
                             'Use tanh instead of relu for hidden layer activations. ' \
