@@ -27,16 +27,5 @@ scripts/mocap/__pycache__/
 
 mujoco/gym_mimic_envs/\.fuse_hidden00043b7c00000004
 /figures/
-!/assets/ref_trajecs
-/assets/ref_trajecs/*
-!/assets/ref_trajecs/Trajecs_Constant_Speed_400Hz.mat
-*.png
-!/mujoco/gym_mimic_envs/mujoco/assets
-/mujoco/gym_mimic_envs/mujoco/assets/*
-!/mujoco/gym_mimic_envs/mujoco/assets/walker3d_flat_feet.xml
-mujoco/gym_mimic_envs/mujoco/mimic_walker2d.py
-/scripts/behavior_cloning/
-/scripts/dim_reduction/
-/scripts/tests/
 
 mujoco/gym_mimic_envs\.egg-info/
