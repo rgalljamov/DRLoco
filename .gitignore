@@ -3,29 +3,12 @@
 
 models/
 
-scripts/common/__pycache__/
-
-scripts/__pycache__/
-
-mujoco/gym_mimic_envs/__pycache__/
-
-mujoco/gym_mimic_envs/mujoco/__pycache__/
-
-scripts/tests/test_remote_dev\.py
-
-figures/latex/
-
-wandb/
-
-scripts/behavior_cloning/__pycache__/
-
-scripts/mocap/__pycache__/
+__pycache__/
 
 *.pyc
 
 *.stl
 
 mujoco/gym_mimic_envs/\.fuse_hidden00043b7c00000004
-/figures/
 
 mujoco/gym_mimic_envs\.egg-info/
