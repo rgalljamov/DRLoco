@@ -10,10 +10,10 @@ from stable_baselines3.common.callbacks import BaseCallback
 
 # define intervals/criteria for saving the model
 # save everytime the agent achieved an additional 10% of the max possible return
-MAX_RETURN = cfg.ep_dur_max * 1 * cfg.rew_scale
+MAX_RETURN = cfg.ep_dur_max * 1
 EP_RETURN_INCREMENT = 0.1 * MAX_RETURN
 # 10% of max possible reward
-MEAN_REW_INCREMENT = 0.1 * cfg.rew_scale
+MEAN_REW_INCREMENT = 0.1
 
 # define evaluation interval
 EVAL_MORE_FREQUENT_THRES = 3.2e6
@@ -259,7 +259,7 @@ class TrainingMonitor(BaseCallback):
 
         # normalize reward
         mean_rew = (mean_rew - cfg.alive_bonus)/cfg.rew_scale
-        mean_rew_thres = 0.4 * cfg.rew_scale \
+        mean_rew_thres = 0.4  \
                          + MEAN_REW_INCREMENT * (self.times_surpassed_mean_reward_threshold + 1)
         if mean_rew > (mean_rew_thres):
             # utils.save_model(self.model, cfg.save_path,

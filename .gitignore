@@ -12,3 +12,5 @@ __pycache__/
 mujoco/gym_mimic_envs/\.fuse_hidden00043b7c00000004
 
 mujoco/gym_mimic_envs\.egg-info/
+
+/wandb/

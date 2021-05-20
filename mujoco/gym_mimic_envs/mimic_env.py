@@ -7,7 +7,7 @@ from gym.envs.mujoco.mujoco_env import MujocoEnv
 from scripts.config import config as cfgl
 from scripts.config import hypers as cfg
 from scripts.common.utils import log, is_remote, \
-    exponential_running_smoothing as smooth
+    exponential_running_smoothing as smooth, get_torque_ranges
 from scripts.ref_trajecs import ReferenceTrajectories as RefTrajecs
 
 
@@ -58,7 +58,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         self.refs.set_sampling_frequency(self.control_freq)
         # The motor torque ranges should always be specified in the config file
         # and overwrite the forcerange in the .MJCF file
-        self.model.actuator_forcerange[:, :] = cfg.TORQUE_RANGES
+        self.model.actuator_forcerange[:, :] = get_torque_ranges(*cfgl.PEAK_JOINT_TORQUES)
 
 
     def step(self, action):
@@ -435,15 +435,27 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         return acts_mirred
 
 
+    def randomize_dynamics(self):
+        model = self.model
+        dir(model)
+        print(dir(model))
+        exit(33)
+        debug = True
+
     def reset_model(self):
+
+        # self.randomize_dynamics()
+
         # get desired qpos and qvel from the refs (also include the trunk COM positions and vels)
         qpos, qvel = self.get_init_state(not self.is_evaluation_on() and not self.FOLLOW_DESIRED_SPEED_PROFILE)
         # apply the refs kinematics to the simulation
         self.set_state(qpos, qvel)
 
         # applying refs kinematics to the model might init the model
-        # without ground contact or with significant ground perturbation
-        # Set the following constant to True to initialize walker always in ground contact
+        # without ground contact or with significant ground penetration
+        # Set the following constant to True to initialize walker always in ground contact.
+        # CAUTION: This requires your mujoco model to have sites on their foot soul.
+        # See mujoco/gym_mimic_envs/mujoco/assets/walker3d_flat_feet.xml for an example.
         OPTIMIZE_GROUND_CONTANT_ON_INITIALIZATION = True
         if OPTIMIZE_GROUND_CONTANT_ON_INITIALIZATION:
             # we determine the lowest foot position (4 sites at the bottom of each foot in the XML file)
@@ -549,12 +561,9 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
         self.pos_rew, self.vel_rew, self.com_rew = pos_rew, vel_rew, com_rew
 
-        if cfg.is_mod(cfg.MOD_REW_MULT):
-            imit_rew = np.sqrt(pos_rew) * np.sqrt(com_rew) # * vel_rew**w_vel
-        else:
-            imit_rew = w_pos * pos_rew + w_vel * vel_rew + w_com * com_rew + w_pow * pow_rew
+        imit_rew = w_pos * pos_rew + w_vel * vel_rew + w_com * com_rew + w_pow * pow_rew
 
-        return imit_rew * cfg.rew_scale
+        return imit_rew
 
 
     def do_terminate_early(self):

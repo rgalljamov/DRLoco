@@ -14,8 +14,8 @@ MAX_EPISODE_STEPS = 3000
 # TODO: remove COM reward, train longer with smaller LR decay, use exp clip_range sched
 # configure Weights & Biases
 WB_PROJECT_NAME = 'torch_cleanup'
-WB_EXPERIMENT_NAME = 'CC: restructured scripts'
-WB_EXPERIMENT_DESCRIPTION = 'Baseline before starting the cleanup experiments. ' \
+WB_RUN_NAME = 'CC: SYM + clean hypers 4'
+WB_RUN_DESCRIPTION = 'Baseline before starting the cleanup experiments. ' \
                             '' \
                             'Use default entropy coefficient. ' \
                             'Use tanh instead of relu for hidden layer activations. ' \
@@ -58,3 +58,7 @@ hid_layer_sizes_pi = [512]*2
 # LR decay slope scaling: slope = lr_scale * (lr_final - lr_start)
 # the decay is linear from lr_start to lr_final
 lr_scale = 2
+
+# names of saved model before and after training
+init_checkpoint = 'init'
+final_checkpoint = 'final'

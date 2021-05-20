@@ -344,3 +344,12 @@ def resetExponentialRunningSmoothing(label, value=0):
     global _exp_weighted_averages
     _exp_weighted_averages[label] = value
     return True
+
+
+def get_torque_ranges(hip_sag, hip_front, knee, ankle):
+    torque_ranges = np.ones((8,2))
+    peaks = np.array([hip_sag, hip_front, knee, ankle] * 2)
+    torque_ranges[:,0] = -peaks
+    torque_ranges[:,1] = peaks
+    # print('Torque ranges (hip_sag, hip_front, knee, ankle): ', torque_ranges)
+    return torque_ranges

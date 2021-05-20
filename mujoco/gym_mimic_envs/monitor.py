@@ -146,7 +146,7 @@ class Monitor(gym.Wrapper):
             self.ep_torques_abs = []
 
 
-        COMPARE_TRAJECS = True and not is_remote()
+        COMPARE_TRAJECS = False and not is_remote()
         if COMPARE_TRAJECS:
 
             # save sim and ref trajecs in a buffer for comparison

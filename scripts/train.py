@@ -1,6 +1,9 @@
 import os.path
 import wandb
+
+import scripts.config.config
 from scripts import eval
+from scripts.config import config as cfgl
 from scripts.config import hypers as cfg
 from scripts.common import utils
 from scripts.common.schedules import LinearDecay, ExponentialSchedule
@@ -56,11 +59,8 @@ def init_wandb(model):
         params['skip_n_steps'] = cfg.SKIP_N_STEPS
         params['steps_per_vel'] = cfg.STEPS_PER_VEL
 
-    if cfg.is_mod(cfg.MOD_E2E_ENC_OBS):
-        params['enc_layers'] = cfg.enc_layer_sizes
-
-    wandb.init(config=params, sync_tensorboard=True, name=cfg.get_wb_run_name(),
-               project=cfg.wb_project_name, notes=cfg.wb_run_notes)
+    wandb.init(config=params, sync_tensorboard=True, name=cfgl.WB_RUN_NAME,
+               project=cfgl.WB_PROJECT_NAME, notes=cfgl.WB_RUN_DESCRIPTION)
 
 
 def train():
@@ -102,19 +102,19 @@ def train():
         init_wandb(model)
 
     # print model path and modification parameters
-    utils.log('RUN DESCRIPTION: \n' + cfg.wb_run_notes)
-    utils.log('Trained Model',
+    utils.log('RUN DESCRIPTION: \n' + cfgl.WB_RUN_DESCRIPTION)
+    utils.log('Training started',
               ['Model: ' + cfg.save_path, 'Modifications: ' + cfg.modification])
 
     # save model and weights before training
     if not cfg.DEBUG:
-        utils.save_model(model, cfg.save_path, cfg.init_checkpoint)
+        utils.save_model(model, cfg.save_path, scripts.config.config.init_checkpoint)
 
     # train model
     model.learn(total_timesteps=training_timesteps, callback=TrainingMonitor())
 
     # save model after training
-    utils.save_model(model, cfg.save_path, cfg.final_checkpoint)
+    utils.save_model(model, cfg.save_path, scripts.config.config.final_checkpoint)
 
     # close environment
     env.close()
