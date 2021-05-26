@@ -13,18 +13,16 @@ MAX_EPISODE_STEPS = 3000
 
 # TODO: remove COM reward, train longer with smaller LR decay, use exp clip_range sched
 # configure Weights & Biases
-WB_PROJECT_NAME = 'torch_cleanup'
-WB_RUN_NAME = 'CC: SYM + clean hypers 4'
-WB_RUN_DESCRIPTION = 'Baseline before starting the cleanup experiments. ' \
+WB_PROJECT_NAME = 'test_ppo'
+WB_RUN_NAME = 'CSTM PI: log_std -0.7'
+WB_RUN_DESCRIPTION = 'Implemented a custom policy so far only replicating the same properties as the MLP policy. ' \
+                     'Baseline with the current PPO parameters. ' \
                             '' \
                             'Use default entropy coefficient. ' \
                             'Use tanh instead of relu for hidden layer activations. ' \
                             'Training longer but reducing the LR faster!' \
                             'Mirroring the policy and training only for 4M steps!' \
-                            'Halved the batchsize to 16k.' \
-                            'Training the first agents with SB3.' \
-                            '' \
-                            'Optimized RSI to guarantee optimal ground contact during initialization.'
+                            'Halved the batchsize to 16k.'
 
 # -----------------------------
 # Simulation Environment
@@ -49,12 +47,11 @@ PEAK_JOINT_TORQUES = [300]*4 # [50]*3 + [5] # [300, 300, 300, 300] #
 # -----------------------------
 
 # number of training steps = samples to collect [in Millions]
-MIO_SAMPLES = 10
+MIO_SAMPLES = 8
 # how many parallel environments should be used to collect samples
 N_PARALLEL_ENVS = 8
 # network hidden layer sizes
-hid_layer_sizes_vf = [512]*2
-hid_layer_sizes_pi = [512]*2
+hid_layer_sizes = [512]*2
 # LR decay slope scaling: slope = lr_scale * (lr_final - lr_start)
 # the decay is linear from lr_start to lr_final
 lr_scale = 2

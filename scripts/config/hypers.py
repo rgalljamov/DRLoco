@@ -4,6 +4,7 @@ import sys
 sys.path.append('/home/rustam/code/torch/')
 
 import numpy as np
+import torch as th
 from scripts.common import utils
 from scripts.config import config as cfg
 
@@ -58,7 +59,7 @@ SIM_FREQ = cfg.SIM_FREQ
 CTRL_FREQ = cfg.CTRL_FREQ
 
 # specify modifications to the baseline algorithm, e.g. mirroring policy
-modifications_list = [MOD_REFS_RAMP, MOD_SYMMETRIC_WALK, MOD_MIRR_POLICY]
+modifications_list = [MOD_CUSTOM_POLICY, MOD_REFS_RAMP, MOD_MIRR_POLICY]
 modification = '/'.join(modifications_list)
 
 # ----------------------------------------------------------------------------------
@@ -81,9 +82,8 @@ clip_exp_slope = 5
 peak_joint_torques = cfg.PEAK_JOINT_TORQUES
 walker_xml_file = cfg.WALKER_MJC_XML_FILE
 
-enc_layer_sizes = [512]*2 + [16]
-hid_layer_sizes_vf = cfg.hid_layer_sizes_vf
-hid_layer_sizes_pi = cfg.hid_layer_sizes_pi
+hid_layer_sizes = cfg.hid_layer_sizes
+activation_fns = [th.nn.Tanh]*2
 gamma = {50:0.99, 100: 0.99, 200:0.995, 400:0.998}[CTRL_FREQ]
 rew_scale = 1
 alive_bonus = 0.2 * rew_scale
@@ -131,7 +131,7 @@ ep_dur_max = cfg.MAX_EPISODE_STEPS # int(_ep_dur_in_k * 1e3)
 max_distance = cfg.MAX_WALKING_DISTANCE
 
 run_id = str(np.random.randint(0, 1000))
-info_baseline_hyp_tune = f'hl{str(hid_layer_sizes_vf)}_ent{int(ent_coef * 1000)}_lr{lr_start}to{lr_final}_epdur{_ep_dur_in_k}_' \
+info_baseline_hyp_tune = f'hl{str(hid_layer_sizes)}_ent{int(ent_coef * 1000)}_lr{lr_start}to{lr_final}_epdur{_ep_dur_in_k}_' \
        f'bs{int(batch_size/1000)}_imrew{rew_weights}_gam{int(gamma*1e3)}'
 
 # construct the paths to store the models at

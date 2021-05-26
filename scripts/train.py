@@ -1,6 +1,8 @@
 import os.path
 import wandb
 
+import torch as th
+
 import scripts.config.config
 from scripts import eval
 from scripts.config import config as cfgl
@@ -13,6 +15,7 @@ from scripts.callback import TrainingMonitor
 # from scripts.algos.custom_ppo2 import CustomPPO2
 from stable_baselines3 import PPO
 from stable_baselines3.ppo.policies import MlpPolicy
+from scripts.custom.policies import CustomActorCriticPolicy
 
 
 def init_wandb(model):
@@ -23,9 +26,7 @@ def init_wandb(model):
         "ctrl_freq": cfg.CTRL_FREQ,
         "lr0": cfg.lr_start,
         "lr1": cfg.lr_final,
-        'hid_sizes': cfg.hid_layer_sizes_vf,
-        'hid_sizes_vf': cfg.hid_layer_sizes_vf,
-        'hid_sizes_pi': cfg.hid_layer_sizes_pi,
+        'hid_sizes': cfg.hid_layer_sizes,
         'peak_joint_torques': cfg.peak_joint_torques,
         'walker_xml_file': cfg.walker_xml_file,
         "noptepochs": cfg.noptepochs,
@@ -84,13 +85,14 @@ def train():
     learning_rate_schedule = LinearDecay(lr_start, lr_end).value
     clip_schedule = ExponentialSchedule(cfg.clip_start, cfg.clip_end, cfg.clip_exp_slope).value
 
-    import torch as th
-    network_args = {'net_arch': [{'vf': cfg.hid_layer_sizes_vf, 'pi': cfg.hid_layer_sizes_pi}],
-                    'activation_fn': th.nn.Tanh} if not cfg.is_mod(cfg.MOD_CUSTOM_POLICY) else {}
+    use_custom_policy = cfg.is_mod(cfg.MOD_CUSTOM_POLICY)
+    policy_kwargs = {'log_std_init':cfg.init_logstd} if use_custom_policy else \
+                    {'net_arch': [{'vf': cfg.hid_layer_sizes, 'pi': cfg.hid_layer_sizes}],
+                    'activation_fn': th.nn.Tanh, 'log_std_init':cfg.init_logstd}
 
-    model = PPO(MlpPolicy,
+    model = PPO(CustomActorCriticPolicy if use_custom_policy else MlpPolicy,
                        env, verbose=1, n_steps=int(cfg.batch_size/cfg.n_envs),
-                       policy_kwargs=network_args,
+                       policy_kwargs=policy_kwargs,
                        learning_rate=learning_rate_schedule, # ent_coef=cfg.ent_coef,
                        gamma=cfg.gamma, n_epochs=cfg.noptepochs,
                        clip_range_vf=clip_schedule if cfg.is_mod(cfg.MOD_CLIPRANGE_SCHED) else cfg.cliprange,
