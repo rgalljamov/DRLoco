@@ -91,7 +91,9 @@ def train():
                     'activation_fn': th.nn.Tanh, 'log_std_init':cfg.init_logstd}
 
     model = PPO(CustomActorCriticPolicy if use_custom_policy else MlpPolicy,
-                       env, verbose=1, n_steps=int(cfg.batch_size/cfg.n_envs),
+                       env, verbose=1,
+                       n_steps = cfg.batch_size//cfg.n_envs, # num of steps per env per update
+                       batch_size=cfg.minibatch_size, # minibatch size (batch size per training step)
                        policy_kwargs=policy_kwargs,
                        learning_rate=learning_rate_schedule, # ent_coef=cfg.ent_coef,
                        gamma=cfg.gamma, n_epochs=cfg.noptepochs,

@@ -120,7 +120,7 @@ algo = 'ppo2'
 mio_samples = cfg.MIO_SAMPLES
 n_envs = cfg.N_PARALLEL_ENVS if utils.is_remote() and not DEBUG else 2
 minibatch_size = 512 * 4
-batch_size = (4096 * 2) if not DEBUG else 2*minibatch_size
+batch_size = (4096 * 4) if not DEBUG else 2*minibatch_size
 # to make PHASE based mirroring comparable with DUP, reduce the batch size
 if is_mod(MOD_MIRR_POLICY): batch_size = int(batch_size / 2)
 

@@ -14,8 +14,9 @@ MAX_EPISODE_STEPS = 3000
 # TODO: remove COM reward, train longer with smaller LR decay, use exp clip_range sched
 # configure Weights & Biases
 WB_PROJECT_NAME = 'test_ppo'
-WB_RUN_NAME = 'CSTM PI: log_std -0.7'
-WB_RUN_DESCRIPTION = 'Implemented a custom policy so far only replicating the same properties as the MLP policy. ' \
+WB_RUN_NAME = 'CSTM PI: 16bs, 2mbs, log_std -0.7'
+WB_RUN_DESCRIPTION = 'Use the so far best batch and minibatch sizes. ' \
+                     'Implemented a custom policy so far only replicating the same properties as the MLP policy. ' \
                      'Baseline with the current PPO parameters. ' \
                             '' \
                             'Use default entropy coefficient. ' \
