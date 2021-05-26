@@ -449,7 +449,6 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         # change mass of the bodies
         # print('before', model.body_mass)
         # model.body_mass[[2,3,4]] = 60
-        model.body_mass[1] = step_count/200
 
         # change body diagonal inertia (shape: n_bodies x 3)
         # model.body_inertia[:,:] = np.ones_like(model.body_inertia)*1
@@ -643,6 +642,32 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
         terminate_early = com_height_too_low or trunk_ang_exceeded or is_drunk
         return terminate_early, com_height_too_low, trunk_ang_exceeded, is_drunk
+
+
+    def debug_contact_forces(self):
+        ''' @param: self is a MjSim, containing a model and a data structure. '''
+
+        # first of the 6 dofs of the contact force seems to be the force in z direction
+        contact_forces = np.zeros(6, dtype=np.float64)
+
+        print('\nNumber of contacts', self.data.ncon)
+        for i in range(self.data.ncon):
+            # Note that the contact array has more than `ncon` entries,
+            # so be careful to only read the valid entries.
+            contact = self.data.contact[i]
+
+            # with this info, we can check between which geometries a contact was detected
+            print('contact', i)
+            name1 = self.model.geom_id2name(contact.geom1)
+            name2 = self.model.geom_id2name(contact.geom2)
+            print('geom1', contact.geom1, name1)
+            print('geom2', contact.geom2, name2)
+
+            # Use internal function to read out mj_contactForce
+            mujoco_py.functions.mj_contactForce(self.model, self.data, i, contact_forces)
+            print('contact_forces', np.round(contact_forces,2))
+            contact_force_norm = np.sqrt(np.sum(np.square(contact_forces)))
+            print('norm contact_forces', np.round(contact_force_norm,2))
 
 
     # ----------------------------
