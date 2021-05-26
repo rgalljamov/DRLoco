@@ -435,16 +435,44 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         return acts_mirred
 
 
-    def randomize_dynamics(self):
+    def dynamics_randomization(self):
         model = self.model
-        dir(model)
-        print(dir(model))
-        exit(33)
-        debug = True
+
+        def add_noise(property, std):
+            shape = property.shape
+            noise = np.random.normal(0, std, shape)
+            new_value = property + noise
+            return new_value
+
+        # std is 10% of the original value - start smaller
+
+        # change mass of the bodies
+        # print('before', model.body_mass)
+        # model.body_mass[[2,3,4]] = 60
+        model.body_mass[1] = step_count/200
+
+        # change body diagonal inertia (shape: n_bodies x 3)
+        # model.body_inertia[:,:] = np.ones_like(model.body_inertia)*1
+
+        # change joint friction
+        # model.dof_frictionloss[:] = np.ones_like(model.dof_frictionloss)*100
+
+        # change joint damping
+        # model.dof_damping[:] = np.ones_like(model.dof_damping)*10
+
+        # change joint solver impedance (n_joints, 5) and solver ref... (n_joints, 2)
+        # model.dof_solimp, model.dof_solref
+
+        # change geometry friction (n_bodies, 3)
+        # model.geom_friction
+
+        # other variables
+        # geom_solimp, geom_solref, jnt_range, jnt_stiffness
+
 
     def reset_model(self):
 
-        # self.randomize_dynamics()
+        self.dynamics_randomization()
 
         # get desired qpos and qvel from the refs (also include the trunk COM positions and vels)
         qpos, qvel = self.get_init_state(not self.is_evaluation_on() and not self.FOLLOW_DESIRED_SPEED_PROFILE)
