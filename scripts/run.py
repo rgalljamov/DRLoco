@@ -6,10 +6,9 @@ import gym, time, mujoco_py
 # necessary to import custom gym environments
 import gym_mimic_envs
 from gym_mimic_envs.monitor import Monitor
-from gym_mimic_envs.mujoco.mimic_walker2d import MimicWalker2dEnv
-from stable_baselines3 import PPO2
+from stable_baselines3 import PPO
 from scripts.common.utils import load_env
-from scripts.common import config as cfg
+from scripts.config import hypers as cfg
 from scripts import config as cfgl
 
 # paths
@@ -29,7 +28,8 @@ path_guoping = '/mnt/88E4BD3EE4BD2EF6/Masters/M.Sc. Thesis/Code/models/dmm/cstm_
 path_140cm_40kg = '/mnt/88E4BD3EE4BD2EF6/Masters/M.Sc. Thesis/Code/models/dmm/cstm_pi/' \
                   'refs_ramp/mirr_exps/MimicWalker3d-v0/8envs/ppo2/16mio/197-evaled-ret78'
 path_agent = cfg.abs_project_path + 'models/dmm/cstm_pi/mim_trq_ff3d/8envs/ppo2/8mio/296-evaled-ret79'
-
+path_agent = '/mnt/88E4BD3EE4BD2EF6/Users/Sony/Google Drive/WORK/DRL/CodeTorch/models/dmm/sb3/' \
+             'refs_ramp/mirr_py/MimicWalker3d-v0/8envs/ppo2/10mio/109'
 
 FLY = False
 DETERMINISTIC_ACTIONS = True
@@ -47,7 +47,7 @@ SPEED_CONTROL = False
 FROM_PATH = True
 PATH = path_agent
 if not PATH.endswith('/'): PATH += '/'
-checkpoint = 'final' # 'ep_ret2100_20M' # '33_min24mean24' # 'ep_ret2000_7M' #'mean_rew60'
+checkpoint = '56' # 'final' # 'ep_ret2100_20M' # '33_min24mean24' # 'ep_ret2000_7M' #'mean_rew60'
 
 if FLY: cfg.rew_weights = "6400"
 
@@ -57,8 +57,8 @@ if FROM_PATH:
         raise AssertionError('Model trained on ramp-trajecs but is used with constant speed trajecs!')
 
     # load model
-    model_path = PATH + f'models/model_{checkpoint}.zip'
-    model = PPO2.load(load_path=model_path)
+    model_path = PATH + f'models/model_{checkpoint}'
+    model = PPO.load(path=model_path)
     print('\nModel:\n', model_path + '\n')
 
     env = load_env(checkpoint, PATH, cfg.env_id)
