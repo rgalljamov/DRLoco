@@ -27,9 +27,7 @@ def is_mod(mod_str):
 # get the absolute path of the current project
 abs_project_path = utils.get_absolute_project_path()
 
-# modifications / modes of the approach
-MOD_FLY = 'fly'
-
+# MODIFICATIONS of the PPO algorithm to achieve better sample efficiency
 
 # todo: choice of mocaps should be a modification
 MOD_REFS_CONST = 'refs_const'

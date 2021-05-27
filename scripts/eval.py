@@ -252,10 +252,6 @@ def record_video_OLD(model, checkpoint, all_returns, relevant_eps):
             mimic_env = video_env.env.venv.envs[0].env
             mimic_env.activate_evaluation()
 
-            if 'fly' in save_path:
-                mimic_env._FLY = True
-                print('flight detected')
-
             obs = video_env.reset()
 
             while step <= video_n_steps:

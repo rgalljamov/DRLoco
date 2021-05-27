@@ -3,7 +3,7 @@
 # -----------------------------
 
 # don't sync with W&B in debug mode, log additional information etc.
-DEBUG_TRAINING = False
+DEBUG_TRAINING = True
 # determine if Pytorch should use CPU or GPU
 USE_CPU = True
 # maximum walking distance after which the episode is terminated
