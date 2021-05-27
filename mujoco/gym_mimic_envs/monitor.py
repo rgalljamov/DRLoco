@@ -42,18 +42,6 @@ class Monitor(gym.Wrapper):
         self.plt = config_pyplot(fig_size=True, font_size=12,
                                  tick_size=12, legend_fontsize=16)
 
-    def activate_speed_control(self, speeds):
-        """TODO: Work in progress. Build desired speed trajectory from speeds.
-            @param speeds: list of desired velocities, this method should linearly interpolate between
-            and use them as the desired walking speed.
-           Currently speeds should be a list of two speeds.
-           The desired speed trajectory is then a ramp from speeds[0] to speeds[1] and back, repeated several times."""
-        self.SPEED_CONTROL = True
-        desired_walking_speeds = np.concatenate(
-            [np.linspace(speeds[0], speeds[1], int(_trajec_buffer_length/6)),
-            np.linspace(speeds[1], speeds[0], int(_trajec_buffer_length/6))])
-        desired_walking_speeds = np.concatenate((desired_walking_speeds, desired_walking_speeds, desired_walking_speeds))
-        self.env.activate_speed_control(desired_walking_speeds)
 
     def setup_containers(self):
         self.ep_len = 0

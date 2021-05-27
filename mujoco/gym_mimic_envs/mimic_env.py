@@ -268,10 +268,37 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
                                          old_state.act, old_state.udd_state)
         self.sim.set_state(new_state)
 
-    def activate_speed_control(self, desired_walking_speeds):
+
+    def activate_speed_control(self,
+                               speeds: list = [1.0, 1.0],
+                               speed_profile_duration: int=10,
+                               plot_trajec = False):
+        '''
+        Use this function to specify a desired walking speed profile, the walker should follow.
+        @param: speeds: specifies desired walking speeds we interpolate between
+        @param: speed_profile_len: specifies the duration of the whole speed profile in seconds
+        Example: ([0.5, 1.0, 0.75], 4) will generate a speed profile increasing from 0.5m/s to 1m/s
+                 during the first two seconds and then decrease to 0.75 in the next two seconds.
+        Hint: The desired velocity is one of the state dimensions
+        and will be set from the generated trajectory in _get_obs.
+        '''
         self.FOLLOW_DESIRED_SPEED_PROFILE = True
-        self.desired_walking_speeds = desired_walking_speeds
-        self.i_speed = 0
+
+        ### generate the speed profile
+        n_profile_sections = len(speeds) - 1
+        profile_duration_in_steps = speed_profile_duration * self.control_freq
+        # the desired speed profile is splitted into regions of different slopes
+        region_duration = int(profile_duration_in_steps/n_profile_sections)
+        regions = []
+        for i in range(n_profile_sections):
+            regions.append(np.linspace(speeds[i], speeds[i+1], region_duration))
+
+        self.desired_walking_speed_trajectory = np.concatenate(regions)
+
+        if plot_trajec:
+            from matplotlib import pyplot as plt
+            plt.plot(self.desired_walking_speed_trajectory)
+            plt.show()
 
     def _get_obs(self):
         qpos, qvel = self.get_joint_kinematics()
@@ -279,15 +306,15 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         qpos = qpos[1:]
 
         if self.FOLLOW_DESIRED_SPEED_PROFILE:
-            self.desired_walking_speed = self.desired_walking_speeds[self.i_speed]
-            self.i_speed += 1
-            if self.i_speed >= len(self.desired_walking_speeds): self.i_speed = 0
+            i_des_speed = ep_dur % len(self.desired_walking_speed_trajectory)
+            self.desired_walking_speed = self.desired_walking_speed_trajectory[i_des_speed]
         else:
             # TODO: during evaluation when speed control is inactive, we should just specify a constant speed
             #  when speed control is not active, set the speed to a constant value from the config
             #  During training, we still should use the step vel from the mocap!
             self.desired_walking_speed = self.refs.get_step_velocity()
-
+    
+        # print(self.desired_walking_speed)
         phase = self.refs.get_phase_variable()
 
         obs = np.concatenate([np.array([phase, self.desired_walking_speed]), qpos, qvel]).ravel()

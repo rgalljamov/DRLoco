@@ -9,7 +9,7 @@ from gym_mimic_envs.monitor import Monitor
 from stable_baselines3 import PPO
 from scripts.common.utils import load_env
 from scripts.config import hypers as cfg
-from scripts import config as cfgl
+from scripts.config import config as cfgl
 
 # paths
 # PD baseline
@@ -28,8 +28,8 @@ path_guoping = '/mnt/88E4BD3EE4BD2EF6/Masters/M.Sc. Thesis/Code/models/dmm/cstm_
 path_140cm_40kg = '/mnt/88E4BD3EE4BD2EF6/Masters/M.Sc. Thesis/Code/models/dmm/cstm_pi/' \
                   'refs_ramp/mirr_exps/MimicWalker3d-v0/8envs/ppo2/16mio/197-evaled-ret78'
 path_agent = cfg.abs_project_path + 'models/dmm/cstm_pi/mim_trq_ff3d/8envs/ppo2/8mio/296-evaled-ret79'
-path_agent = '/mnt/88E4BD3EE4BD2EF6/Users/Sony/Google Drive/WORK/DRL/CodeTorch/models/dmm/sb3/' \
-             'refs_ramp/mirr_py/MimicWalker3d-v0/8envs/ppo2/10mio/109'
+path_agent = '/mnt/88E4BD3EE4BD2EF6/Users/Sony/Google Drive/WORK/DRL/CodeTorch/models/train/' \
+             'cstm_pi/refs_ramp/mirr_py/MimicWalker3d-v0/8envs/ppo2/4mio/885'
 
 DETERMINISTIC_ACTIONS = True
 RENDER = True
@@ -39,14 +39,16 @@ if cfg.env_out_torque:
 else:
     cfg.env_id = cfg.env_ids[2]
 
-SPEED_CONTROL = False
+SPEED_CONTROL = True
+speeds = [0.5, 1, 1.25, 1.25]
+duration_secs = 8
 
 
 # which model would you like to run
 FROM_PATH = True
 PATH = path_agent
 if not PATH.endswith('/'): PATH += '/'
-checkpoint = '56' # 'final' # 'ep_ret2100_20M' # '33_min24mean24' # 'ep_ret2000_7M' #'mean_rew60'
+checkpoint = 'final' # 'ep_ret2100_20M' # '33_min24mean24' # 'ep_ret2000_7M' #'mean_rew60'
 
 if FROM_PATH:
     # check if correct reference trajectories are used
@@ -71,10 +73,14 @@ if not isinstance(env, Monitor):
     env = env.venv.envs[0]
 
 if SPEED_CONTROL:
-    env.activate_speed_control([0.8, 1.25])
+    env.activate_speed_control(speeds, duration_secs)
+    cfg.ep_dur_max = duration_secs * cfgl.CTRL_FREQ
 
 obs = vec_env.reset()
 env.activate_evaluation()
+
+des_speeds = []
+com_speeds = []
 
 for i in range(10000):
 
@@ -93,7 +99,18 @@ for i in range(10000):
     # only stop episode when agent has fallen
     done = env.data.qpos[env.env._get_COM_indices()[-1]] < 0.5
 
+    if SPEED_CONTROL:
+        des_speeds.append(env.desired_walking_speed)
+        com_speeds.append(env.get_qvel()[0])
+
     if RENDER: env.render()
     if done: env.reset()
+    if SPEED_CONTROL and i >= cfg.ep_dur_max:
+        from matplotlib import pyplot as plt
+        plt.plot(des_speeds)
+        plt.plot(com_speeds)
+        plt.legend(['Desired Walking Speed', 'COM X Velocity'])
+        plt.show()
+        exit(33)
 
 env.close()
