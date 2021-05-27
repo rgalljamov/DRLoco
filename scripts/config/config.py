@@ -5,24 +5,26 @@
 # don't sync with W&B in debug mode, log additional information etc.
 DEBUG_TRAINING = False
 # determine if Pytorch should use CPU or GPU
-USE_CPU = False
+USE_CPU = True
 # maximum walking distance after which the episode is terminated
-MAX_WALKING_DISTANCE = 20
+MAX_WALKING_DISTANCE = 15
 # maximum length of an episode
 MAX_EPISODE_STEPS = 3000
 
 # TODO: remove COM reward, train longer with smaller LR decay, use exp clip_range sched
 # configure Weights & Biases
 WB_PROJECT_NAME = 'test_ppo'
-WB_RUN_NAME = 'CSTM PI: 16bs, 2mbs, log_std -0.7'
-WB_RUN_DESCRIPTION = 'Use the so far best batch and minibatch sizes. ' \
+WB_RUN_NAME = 'CPU + 4M steps, 16bs, 2mbs, log_std -0.7'
+WB_RUN_DESCRIPTION = 'Train only for 4M steps with lr_scale = 1. ' \
+                     'REMOVED: Punish entropy again as done with SB2. ' \
+                     'Use the so far best batch and minibatch sizes. ' \
                      'Implemented a custom policy so far only replicating the same properties as the MLP policy. ' \
                      'Baseline with the current PPO parameters. ' \
                             '' \
                             'Use default entropy coefficient. ' \
                             'Use tanh instead of relu for hidden layer activations. ' \
                             'Training longer but reducing the LR faster!' \
-                            'Mirroring the policy and training only for 4M steps!' \
+                            'Mirroring the policy and training only for 4M steps! ' \
                             'Halved the batchsize to 16k.'
 
 # -----------------------------
@@ -48,14 +50,14 @@ PEAK_JOINT_TORQUES = [300]*4 # [50]*3 + [5] # [300, 300, 300, 300] #
 # -----------------------------
 
 # number of training steps = samples to collect [in Millions]
-MIO_SAMPLES = 8
+MIO_SAMPLES = 4
 # how many parallel environments should be used to collect samples
 N_PARALLEL_ENVS = 8
 # network hidden layer sizes
 hid_layer_sizes = [512]*2
 # LR decay slope scaling: slope = lr_scale * (lr_final - lr_start)
 # the decay is linear from lr_start to lr_final
-lr_scale = 2
+lr_scale = 1
 
 # names of saved model before and after training
 init_checkpoint = 'init'

@@ -95,7 +95,7 @@ def train():
                        n_steps = cfg.batch_size//cfg.n_envs, # num of steps per env per update
                        batch_size=cfg.minibatch_size, # minibatch size (batch size per training step)
                        policy_kwargs=policy_kwargs,
-                       learning_rate=learning_rate_schedule, # ent_coef=cfg.ent_coef,
+                       learning_rate=learning_rate_schedule, ent_coef=cfg.ent_coef,
                        gamma=cfg.gamma, n_epochs=cfg.noptepochs,
                        clip_range_vf=clip_schedule if cfg.is_mod(cfg.MOD_CLIPRANGE_SCHED) else cfg.cliprange,
                        clip_range=clip_schedule if cfg.is_mod(cfg.MOD_CLIPRANGE_SCHED) else cfg.cliprange,

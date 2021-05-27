@@ -33,7 +33,7 @@ path_agent = '/mnt/88E4BD3EE4BD2EF6/Users/Sony/Google Drive/WORK/DRL/CodeTorch/m
 
 FLY = False
 DETERMINISTIC_ACTIONS = True
-RENDER = True
+RENDER = False
 
 if cfg.env_out_torque:
     cfg.env_id = cfg.env_ids[4]
