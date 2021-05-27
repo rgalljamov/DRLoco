@@ -300,10 +300,45 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             plt.plot(self.desired_walking_speed_trajectory)
             plt.show()
 
+
+    def estimate_phase_from_hip_joint_phase_plot(self, qpos, qvel, debug=False):
+        # estimate the phase from a phase plot of the hip joint
+        hip_sag_joint_index = 6
+        hip_pos_sag = qpos[hip_sag_joint_index]
+        hip_vel_sag = qvel[hip_sag_joint_index]
+
+        x, y = hip_pos_sag, hip_vel_sag
+        phase_angle = np.arctan2(y, x)
+
+        if debug:
+            # collect the hip pos and vel for the phase plot
+            self.hip_pos.append(hip_pos_sag)
+            self.hip_vel.append(hip_vel_sag)
+            self.phase_angles.append(phase_angle)
+
+            if len(self.hip_pos) >= 1000:
+                from matplotlib import pyplot as plt
+                from scripts.common.utils import smooth_exponential as smooth
+                fig, subs = plt.subplots(1, 2)
+
+                subs[0].plot(smooth(self.hip_pos, alpha=0.95), smooth(self.hip_vel, alpha=0.95))
+                subs[0].set_title('Hip Joint Phase Plot')
+                subs[0].set_xlabel('Angle [rad]')
+                subs[0].set_ylabel('Angular Velocity [rad/s]')
+
+                subs[1].plot(self.phase_angles)
+                subs[1].set_title('Hip Joint Phase Plot Angle')
+                subs[1].set_xlabel('Timesteps [1/200s]')
+                subs[0].set_ylabel('Phase Angle [rad]')
+
+                plt.show()
+                exit(33)
+
+        # scale the phase angle to be in range [-1,1]
+        return phase_angle / np.pi
+
     def _get_obs(self):
         qpos, qvel = self.get_joint_kinematics()
-        # remove COM x position as the action should be independent of it
-        qpos = qpos[1:]
 
         if self.FOLLOW_DESIRED_SPEED_PROFILE:
             i_des_speed = ep_dur % len(self.desired_walking_speed_trajectory)
@@ -314,8 +349,11 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             #  During training, we still should use the step vel from the mocap!
             self.desired_walking_speed = self.refs.get_step_velocity()
     
-        # print(self.desired_walking_speed)
-        phase = self.refs.get_phase_variable()
+        # phase = self.refs.get_phase_variable()
+        phase = self.estimate_phase_from_hip_joint_phase_plot(qpos, qvel)
+
+        # remove COM x position as the action should be independent of it
+        qpos = qpos[1:]
 
         obs = np.concatenate([np.array([phase, self.desired_walking_speed]), qpos, qvel]).ravel()
 
@@ -346,6 +384,8 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
                                   18, 19, 20,
                                   25, 26, 27, 28,
                                   21, 22, 23, 24]
+            # correct for the removal of the phase variable
+            # mirred_obs_indices = (np.array(mirred_obs_indices) - 1)[1:]
             # some observations and actions retain the same absolute value but change the sign
             negate_obs_indices = [2, 4, 6, 8, 12, 16, 18, 20, 22, 26]
         else:

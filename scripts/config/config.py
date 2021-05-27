@@ -3,7 +3,7 @@
 # -----------------------------
 
 # don't sync with W&B in debug mode, log additional information etc.
-DEBUG_TRAINING = True
+DEBUG_TRAINING = False
 # determine if Pytorch should use CPU or GPU
 USE_CPU = True
 # maximum walking distance after which the episode is terminated
@@ -13,10 +13,9 @@ MAX_EPISODE_STEPS = 3000
 
 # TODO: remove COM reward, train longer with smaller LR decay, use exp clip_range sched
 # configure Weights & Biases
-WB_PROJECT_NAME = 'test_ppo'
-WB_RUN_NAME = 'CPU + 4M steps, 16bs, 2mbs, log_std -0.7'
-WB_RUN_DESCRIPTION = 'Train only for 4M steps with lr_scale = 1. ' \
-                     'REMOVED: Punish entropy again as done with SB2. ' \
+WB_PROJECT_NAME = 'no_phase'
+WB_RUN_NAME = 'phase_ang'
+WB_RUN_DESCRIPTION = 'Estimate the phase variable from the hip joint phase plot angle. ' \
                      'Use the so far best batch and minibatch sizes. ' \
                      'Implemented a custom policy so far only replicating the same properties as the MLP policy. ' \
                      'Baseline with the current PPO parameters. ' \
