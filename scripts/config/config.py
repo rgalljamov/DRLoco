@@ -14,8 +14,11 @@ MAX_EPISODE_STEPS = 3000
 # TODO: remove COM reward, train longer with smaller LR decay, use exp clip_range sched
 # configure Weights & Biases
 WB_PROJECT_NAME = 'no_phase'
-WB_RUN_NAME = 'phase_ang'
-WB_RUN_DESCRIPTION = 'Estimate the phase variable from the hip joint phase plot angle. ' \
+# todo: definitely also try increasing the velocity reward weight
+WB_RUN_NAME = 'phase_ang, init_logstd = -1.25, rew55'
+WB_RUN_DESCRIPTION = '' \
+                     'Reduce the logstd to -1.25, instead of -0.7' \
+                     'Estimate the phase variable from the hip joint phase plot angle. ' \
                      'Use the so far best batch and minibatch sizes. ' \
                      'Implemented a custom policy so far only replicating the same properties as the MLP policy. ' \
                      'Baseline with the current PPO parameters. ' \
