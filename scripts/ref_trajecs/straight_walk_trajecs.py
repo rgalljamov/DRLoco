@@ -108,8 +108,8 @@ else:
 negate_indices = [COM_POSY, TRUNK_ROT_X, TRUNK_ROT_Z, HIP_FRONT_ANG_R, HIP_FRONT_ANG_L,
                   COM_VELY, TRUNK_ANGVEL_X, TRUNK_ANGVEL_Z, HIP_FRONT_ANGVEL_R, HIP_FRONT_ANGVEL_L]
 
-class ReferenceTrajectories:
 
+class ReferenceTrajectories:
     def __init__(self, qpos_indices, q_vel_indices, adaptations={}):
         self.path = PATH_REF_TRAJECS
         self.qpos_is = qpos_indices

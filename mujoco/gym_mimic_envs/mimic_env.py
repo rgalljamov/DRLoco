@@ -8,8 +8,7 @@ from scripts.config import config as cfgl
 from scripts.config import hypers as cfg
 from scripts.common.utils import log, is_remote, \
     exponential_running_smoothing as smooth, get_torque_ranges
-from scripts.ref_trajecs import ReferenceTrajectories as RefTrajecs
-
+from scripts.ref_trajecs.straight_walk_trajecs import ReferenceTrajectories as RefTrajecs
 
 
 # flag if ref trajectories are played back
@@ -349,8 +348,8 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             #  During training, we still should use the step vel from the mocap!
             self.desired_walking_speed = self.refs.get_step_velocity()
     
-        # phase = self.refs.get_phase_variable()
-        phase = self.estimate_phase_from_hip_joint_phase_plot(qpos, qvel)
+        phase = self.refs.get_phase_variable()
+        # phase = self.estimate_phase_from_hip_joint_phase_plot(qpos, qvel)
 
         # remove COM x position as the action should be independent of it
         qpos = qpos[1:]

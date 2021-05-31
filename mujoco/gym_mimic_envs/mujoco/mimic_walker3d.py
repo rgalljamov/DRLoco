@@ -3,7 +3,7 @@ from os.path import join, dirname
 from gym_mimic_envs.mimic_env import MimicEnv
 
 from scripts.config import config as cfgl
-from scripts import ref_trajecs as refs
+from scripts.ref_trajecs import straight_walk_trajecs as refs
 from scripts.config import hypers as cfg
 
 # pause sim on startup to be able to change rendering speed, camera perspective etc.
