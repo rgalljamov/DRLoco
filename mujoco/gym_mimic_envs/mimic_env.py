@@ -8,7 +8,7 @@ from scripts.config import config as cfgl
 from scripts.config import hypers as cfg
 from scripts.common.utils import log, is_remote, \
     exponential_running_smoothing as smooth, get_torque_ranges
-from scripts.ref_trajecs.straight_walk_trajecs import ReferenceTrajectories as RefTrajecs
+from scripts.ref_trajecs.straight_walk_trajecs import StraightWalkingTrajectories as RefTrajecs
 
 
 # flag if ref trajectories are played back
@@ -51,8 +51,6 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         # make sure simulation and control run at the desired frequency
         self.model.opt.timestep = 1 / self._sim_freq
         self.control_freq = self._sim_freq / self._frame_skip
-        # sync reference data with the control frequency
-        self.refs.set_sampling_frequency(self.control_freq)
         # The motor torque ranges should always be specified in the config file
         # and overwrite the forcerange in the .MJCF file
         self.model.actuator_forcerange[:, :] = get_torque_ranges(*cfgl.PEAK_JOINT_TORQUES)

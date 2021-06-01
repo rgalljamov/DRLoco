@@ -9,6 +9,7 @@ Script to handle reference trajectories.
 import random
 import numpy as np
 import scipy.io as spio
+from scripts.ref_trajecs.base_ref_trajecs import BaseReferenceTrajectories
 from scripts.config.hypers import is_mod, MOD_REFS_RAMP, MOD_SYMMETRIC_WALK, \
     SKIP_N_STEPS, STEPS_PER_VEL, EVAL_N_TIMES, CTRL_FREQ
 from scripts.common.utils import log, is_remote, config_pyplot, smooth_exponential
@@ -30,8 +31,7 @@ PATH_TRAJEC_RANGES = assets_path + \
                      'assets/mocaps/Trajec_Ranges_Ramp_Slow_200Hz_EulerTrunkAdded.npz'
 
 # path to the reference trajectories
-PATH_REF_TRAJECS = assets_path + \
-                   (PATH_SPEED_RAMP if is_mod(MOD_REFS_RAMP) else PATH_CONSTANT_SPEED)
+PATH_REF_TRAJECS = PATH_SPEED_RAMP if is_mod(MOD_REFS_RAMP) else PATH_CONSTANT_SPEED
 
 SAMPLE_FREQ = 400
 assert str(SAMPLE_FREQ) in PATH_REF_TRAJECS, 'Have you set the right sample frequency!?'
@@ -109,22 +109,17 @@ negate_indices = [COM_POSY, TRUNK_ROT_X, TRUNK_ROT_Z, HIP_FRONT_ANG_R, HIP_FRONT
                   COM_VELY, TRUNK_ANGVEL_X, TRUNK_ANGVEL_Z, HIP_FRONT_ANGVEL_R, HIP_FRONT_ANGVEL_L]
 
 
-class ReferenceTrajectories:
+class StraightWalkingTrajectories(BaseReferenceTrajectories):
     def __init__(self, qpos_indices, q_vel_indices, adaptations={}):
-        self.path = PATH_REF_TRAJECS
-        self.qpos_is = qpos_indices
-        self.qvel_is = q_vel_indices
+        super(StraightWalkingTrajectories, self).__init__(
+            PATH_REF_TRAJECS, 400, 200, qpos_indices, q_vel_indices, labels)
+
         # setup pyplot
         self.plt = config_pyplot(fig_size=True, font_size=12,
                                  tick_size=12, legend_fontsize=16)
-        # velocity ramp trajecs: 250 steps consisting of 40 trajectories (250x(n_dofs,n_timesteps)
-        self.data = self._load_trajecs()
-        # calculate ranges needed for Early Termination
-        # self.ranges = self._determine_trajectory_ranges()
+        self.reset()
         # calculate walking speeds for each step
         self.step_velocities = self._calculate_walking_speed()
-        # adapt trajectories to other environments
-        self._adapt_trajecs_to_other_body(adaptations)
         # calculated and added trunk euler rotations
         # self._add_trunk_euler_rotations()
         # some steps are done with left, some with right foot
@@ -132,16 +127,9 @@ class ReferenceTrajectories:
         # mirror right step and use it as left step
         if is_mod(MOD_SYMMETRIC_WALK): self._symmetric_walk()
         # current step
-        self._step = self._get_random_step()
-        # how many points to jump over when next() is called
-        # to get lower sample frequency data
-        self._set_increment(int(400 / CTRL_FREQ))
-        # position on the reference trajectory of the current step
-        self._pos = 0
+        self._step = self._data
         # distance walked so far (COM X Position)
         self.dist = 0
-        # episode duration
-        self.ep_dur = 0
         # flag to indicate the last step in the refs was reached
         self.has_reached_last_step = False
         # count how many steps were taken without skipping steps
@@ -154,7 +142,6 @@ class ReferenceTrajectories:
         right_step_indices = np.array(self.left_step_indices) - 1
         # replace left steps with right steps
         self.data[self.left_step_indices] = self.data[right_step_indices]
-        test = True
         for i_left_step in self.left_step_indices:
             # steps at left index are right steps, but not mirrored yet
             right_step = self.data[i_left_step]
@@ -170,40 +157,17 @@ class ReferenceTrajectories:
         :param increment number of points to proceed on the ref trajecs
                          increment=2 corresponds to 200Hz sample frequency
         """
-        self._pos += self.increment
-        self.ep_dur += 1
+        self._pos += self._increment
+        self._ep_dur += 1
         # when we reached the trajectory's end of the current step
-        dif = self._pos - (len(self._step[0]) - 1)
+        dif = self._pos - self._trajec_len + 1
         if dif > 0:
             # choose the next step
-            self._step = self._get_next_step()
+            self._data = self._get_next_step()
+            # update the trajec length as it is different for each step
+            self._trajec_len = self._data.shape[1]
             # make sure to do the required increment
             self._pos = dif
-
-    def _set_increment(self, increment):
-        """
-        sets how many points to skip when next() is called.
-        Goal is to simulate the data being collected at a lower sample frequency.
-        Original sampling frequency of the data is 400Hz.
-        Resulting frequency is 400/increment
-         """
-        assert type(increment) == int, \
-            f'The increment/frameskip of the reference trajectories ' \
-            f'should be an integer but was {increment}'
-        self.increment = increment
-
-
-    def set_sampling_frequency(self, control_freq):
-        """
-        Sampling frequency is controlled by the increment in next().
-        """
-        increment = SAMPLE_FREQ / control_freq
-        assert increment.is_integer(), \
-            f'Please check your control frequency and the sampling frequency of the reference data!' \
-            f'The sampling frequency of the reference data should be equal to ' \
-            f'or an integer multiple of the control frequency.'
-        self._set_increment(int(increment))
-
 
     def reset(self):
         """ Set all indices and counters to zero."""
@@ -211,18 +175,11 @@ class ReferenceTrajectories:
         self._step = self.data[0]
         self._pos = 0
         self.dist = 0
-        self.ep_dur = 0
+        self._ep_dur = 0
         self.has_reached_last_step = False
 
-    def get_qpos(self):
-        return self._get_by_indices(self.qpos_is)
-
-    def get_qvel(self):
-        return self._get_by_indices(self.qvel_is)
-
     def get_phase_variable(self):
-        trajec_duration = len(self._step[0])
-        phase = self._pos / trajec_duration
+        phase = self._pos / self._trajec_len
         if not (phase >= 0 and phase <= 1):
            print(f'Phase Variable should be between 0 and 1 but was {phase}')
         return phase
@@ -252,8 +209,8 @@ class ReferenceTrajectories:
                         if false, return two lists qpos_labels and qvel_labels
         """
         global labels
-        qpos_labels = labels[self.qpos_is]
-        qvel_labels = labels[self.qvel_is]
+        qpos_labels = labels[self._qpos_indices]
+        qvel_labels = labels[self._qvel_indices]
         if concat:
             return np.concatenate([qpos_labels, qvel_labels]).flatten()
         else:
@@ -287,39 +244,17 @@ class ReferenceTrajectories:
     def is_step_left(self):
         return self._i_step in self.left_step_indices
 
-    def _get_by_indices(self, indices):
-        """
-        This is the main internal method to get specified reference trajectories.
-        All other methods should call this one as it handles internal variables
-        like the current step.
-
-        todo: a user might forget to call refs.next().
-        todo: It would be nice to warn him, when self._pos doesn't change for too long.
-
-        Parameters
-        ----------
-        joints is a list of indices specifying joints of interest.
-               Use refs.COM_X etc. to specify your joints.
-
-        Returns
-        -------
-        Kinematics of specified joints at the current position
-        on the current step trajectory.
-        """
-        joint_kinematics = self._step[indices, self._pos]
-        return joint_kinematics
-
     def get_random_init_state(self):
         ''' Random State Initialization:
             @returns: qpos and qvel of a random step at a random position'''
         self._step = self._get_random_step()
         self._pos = random.randint(0, len(self._step[0]) - 1)
         # reset episode duration and so far traveled distance
-        self.ep_dur = 0
+        self._ep_dur = 0
         self.dist = 0
         return self.get_qpos(), self.get_qvel()
 
-    def get_deterministic_init_state(self, i_step = 0):
+    def _get_deterministic_init_state(self, i_step = 0):
         ''' Deterministic State Initialization.
             @returns: qpos and qvel on a predefined position on the ref trajecs
                       but choosing another step each time. '''
@@ -386,19 +321,18 @@ class ReferenceTrajectories:
         ang_r, ang_l, vel_r, vel_l = self._step[indices]
         return ang_r, ang_l, vel_r, vel_l
 
-    def _load_trajecs(self):
+    def _load_ref_trajecs(self):
+        """ In this class, the data is split into individual steps.
+            Shape of data is: (n_steps, data_dims, traj_len). """
         # load matlab data, containing trajectories of 250 steps
-        data = spio.loadmat(self.path, squeeze_me=True)
+        data = spio.loadmat(self._data_path, squeeze_me=True)
         # 250 steps, shape (250,1), where 1 is an array with kinematic data
         data = data['Data']
         # flatten the array to have dim (steps,)
         data = data.flatten()
-        return data
-
-    def _get_random_step(self):
-        # which of the 250 steps are we looking at
-        self._i_step = random.randint(0, len(self.data) - 1, )
-        return self.data[self._i_step]
+        # contains the data of all steps
+        self.data = data
+        return data[0]
 
     def _get_next_step(self):
         """
@@ -543,10 +477,20 @@ class ReferenceTrajectories:
         np.savez(PATH_TRAJEC_RANGES, mins=mins, maxs=maxs, ranges=ranges)
         self.ranges = ranges
 
+    # ----------------------------
+    # Methods we override:
+    # ----------------------------
 
+    def get_random_init_state(self):
+        # which of the 250 steps are we looking at
+        self._i_step = random.randint(0, len(self.data) - 1, )
+        return self.data[self._i_step]
+
+    def get_deterministic_init_state(self):
+        return self._get_deterministic_init_state(i_step=0)
 
 
 
 
 if __name__ == '__main__':
-    refs = ReferenceTrajectories([],[])
+    refs = StraightWalkingTrajectories([], [])

@@ -38,7 +38,7 @@ class MimicWalker3dEnv(MimicEnv):
         # init reference trajectories
         # by specifying the indices in the mocap data to use for qpos and qvel
         global qpos_indices, qvel_indices
-        reference_trajectories = refs.ReferenceTrajectories(qpos_indices, qvel_indices)
+        reference_trajectories = refs.StraightWalkingTrajectories(qpos_indices, qvel_indices)
         # specify absolute path to the MJCF file
         mujoco_xml_file = join(dirname(__file__), "assets", walker_xml)
         # init the mimic environment

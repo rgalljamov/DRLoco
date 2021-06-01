@@ -1,3 +1,4 @@
+import numpy as np
 from scripts.common.utils import get_absolute_project_path
 
 
@@ -15,15 +16,17 @@ class BaseReferenceTrajectories:
         self._data_path = get_absolute_project_path() + rel_data_path
         self._sample_freq = sample_freq
         self._control_freq = control_freq
-        self._qpos_is = qpos_indices
-        self._qvel_is = qvel_indices
+        self._qpos_indices = qpos_indices
+        self._qvel_indices = qvel_indices
         self._data_labels = data_labels
 
         # container of the trajectories (see _load_ref_trajecs() for details)
         self._data = self._load_ref_trajecs()
+        self._data_dims, self._trajec_len = self._data.shape
         # check if all data rows have a label
-        assert len(data_labels) == self._data.shape[0], \
-            "Please provide a label for each row in the data matrix.\n"
+        assert len(data_labels) == self._data_dims, \
+            "Please provide a label for each row in the data matrix.\n" \
+            f"You provided {len(data_labels)} labels for a matrix of shape {self._data.shape}.\n"
         # position on the reference trajectories
         self._pos = 0
         # how many points to "jump over" when next() is called
@@ -36,18 +39,35 @@ class BaseReferenceTrajectories:
         """
         if position is None:
             position = self._pos
-        data = self._data[indices, position]
+        data = self._data[indices, int(position)]
         return data
 
     def get_qpos(self):
-        return self._get_by_indices(self._qpos_is)
+        return self._get_by_indices(self._qpos_indices)
 
     def get_qvel(self):
-        return self._get_by_indices(self._qvel_is)
+        return self._get_by_indices(self._qvel_indices)
 
     def reset(self):
         """ Set all indices, counters and containers to zero."""
         self._pos = 0
+
+    def get_deterministic_init_state(self, pos_in_percent):
+        """ 
+        Returns the data on a certain position on the reference trajectory.
+        :param pos_in_percent:  specifies the position on the reference trajectory
+                                by skipping the percentage (in [0:100]) of points
+        """
+        self._pos = int(self._trajec_len * pos_in_percent / 100)
+        return self.get_qpos(), self.get_qvel()
+
+    def get_random_init_state(self):
+        '''
+        Random State Initialization (cf. DeepMimic Paper).
+        :returns qpos and qvel of a random position on the reference trajectories
+        '''
+        self._pos = np.random.randint(0, self._trajec_len)
+        return self.get_qpos(), self.get_qvel()
 
     def _set_increment(self):
         increment = self._sample_freq / self._control_freq
@@ -64,14 +84,14 @@ class BaseReferenceTrajectories:
         """
         self._pos += self._increment
         # reset the position to zero again when it reached the max possible value
-        if self._pos >= self._data.shape[1]:
+        if self._pos >= self._trajec_len - 1:
             self._pos = 0
 
     # ----------------------------
     # Methods to override:
     # ----------------------------
 
-    def _load_ref_trjaecs(self):
+    def _load_ref_trajecs(self):
         """
         Populates self.data with the reference trajectories.
         The expected shape is (n_dims, n_points)
