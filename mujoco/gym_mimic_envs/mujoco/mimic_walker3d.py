@@ -34,10 +34,9 @@ class MimicWalker3dEnv(MimicEnv):
 
     def __init__(self):
         # specify the name of the environment XML file
-        walker_xml = cfgl.WALKER_MJC_XML_FILE
+        walker_xml = 'walker3d_flat_feet.xml'
         # init reference trajectories
         # by specifying the indices in the mocap data to use for qpos and qvel
-        global qpos_indices, qvel_indices
         reference_trajectories = refs.StraightWalkingTrajectories(qpos_indices, qvel_indices)
         # specify absolute path to the MJCF file
         mujoco_xml_file = join(dirname(__file__), "assets", walker_xml)

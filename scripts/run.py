@@ -45,7 +45,7 @@ duration_secs = 8
 
 
 # which model would you like to run
-FROM_PATH = True
+FROM_PATH = False
 PATH = path_agent
 if not PATH.endswith('/'): PATH += '/'
 checkpoint = 'final' # 'ep_ret2100_20M' # '33_min24mean24' # 'ep_ret2000_7M' #'mean_rew60'
@@ -62,7 +62,8 @@ if FROM_PATH:
 
     env = load_env(checkpoint, PATH, cfg.env_id)
 else:
-    env = gym.make(cfg.env_id)
+    # env = gym.make(cfg.env_id)
+    env = gym.make('MimicWalker3dHip-v0')
     env = Monitor(env)
     vec_env = env
     # env.playback_ref_trajectories(10000, pd_pos_control=True)

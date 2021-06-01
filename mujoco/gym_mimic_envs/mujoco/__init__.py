@@ -1,1 +1,2 @@
 from gym_mimic_envs.mujoco.mimic_walker3d import MimicWalker3dEnv
+from gym_mimic_envs.mujoco.mimic_walker_hip3d import MimicWalker3dHipEnv
