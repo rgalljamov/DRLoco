@@ -16,8 +16,8 @@ from scripts.common.utils import log, is_remote, config_pyplot, smooth_exponenti
 
 
 # relative paths to trajectories
-PATH_CONSTANT_SPEED = 'assets/mocaps/Trajecs_Constant_Speed_400Hz.mat'
-PATH_SPEED_RAMP = 'assets/mocaps/Trajecs_Ramp_Slow_400Hz_EulerTrunkAdded.mat'
+PATH_CONSTANT_SPEED = 'assets/mocaps/straight_walking/Trajecs_Constant_Speed_400Hz.mat'
+PATH_SPEED_RAMP = 'assets/mocaps/straight_walking/Trajecs_Ramp_Slow_400Hz_EulerTrunkAdded.mat'
 
 # execute on my private PC or on the remote Lauflabor PC
 REMOTE = is_remote()
@@ -28,7 +28,7 @@ assets_path = '/home/rustam/code/torch/' if REMOTE \
 
 # path to the saved trajectory ranges (no longer used)
 PATH_TRAJEC_RANGES = assets_path + \
-                     'assets/mocaps/Trajec_Ranges_Ramp_Slow_200Hz_EulerTrunkAdded.npz'
+                     'assets/mocaps/straight_walking/Trajec_Ranges_Ramp_Slow_200Hz_EulerTrunkAdded.npz'
 
 # path to the reference trajectories
 PATH_REF_TRAJECS = PATH_SPEED_RAMP if is_mod(MOD_REFS_RAMP) else PATH_CONSTANT_SPEED
