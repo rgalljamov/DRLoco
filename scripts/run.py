@@ -82,6 +82,8 @@ env.activate_evaluation()
 des_speeds = []
 com_speeds = []
 
+env.playback_ref_trajectories(2000)
+
 for i in range(10000):
 
     if FROM_PATH:

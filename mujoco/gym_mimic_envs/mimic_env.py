@@ -235,7 +235,6 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         max_qpos_deltas = SCALE_MAX_VELS * max_vels / self.control_freq
         return max_qpos_deltas
 
-
     def playback_ref_trajectories(self, timesteps=2000):
         global _play_ref_trajecs
         _play_ref_trajecs = True
@@ -246,7 +245,15 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         env.reset()
         for i in range(timesteps):
             self.refs.next()
-            self.set_joint_kinematics_in_sim()
+            ZERO_INPUTS = False
+            if ZERO_INPUTS:
+                qpos, qvel = self.get_joint_kinematics()
+                qpos = np.zeros_like(qpos)
+                qvel = np.zeros_like(qvel)
+                self.set_joint_kinematics_in_sim(qpos, qvel)
+            else:
+                self.set_joint_kinematics_in_sim()
+            # self.step(np.zeros_like(self.action_space.sample()))
             self.sim.forward()
             self.render()
 
@@ -346,8 +353,8 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             #  During training, we still should use the step vel from the mocap!
             self.desired_walking_speed = self.refs.get_step_velocity()
     
-        phase = self.refs.get_phase_variable()
-        # phase = self.estimate_phase_from_hip_joint_phase_plot(qpos, qvel)
+        # phase = self.refs.get_phase_variable()
+        phase = self.estimate_phase_from_hip_joint_phase_plot(qpos, qvel)
 
         # remove COM x position as the action should be independent of it
         qpos = qpos[1:]
@@ -586,7 +593,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         - does the characters COM in Y direction deviated from straight walking
         """
         if _play_ref_trajecs:
-            return False
+            return [False]*4
 
         qpos = self.get_qpos()
         ref_qpos = self.refs.get_qpos()
