@@ -112,7 +112,7 @@ negate_indices = [COM_POSY, TRUNK_ROT_X, TRUNK_ROT_Z, HIP_FRONT_ANG_R, HIP_FRONT
 class StraightWalkingTrajectories(BaseReferenceTrajectories):
     def __init__(self, qpos_indices, q_vel_indices, adaptations={}):
         super(StraightWalkingTrajectories, self).__init__(
-            PATH_REF_TRAJECS, 400, 200, qpos_indices, q_vel_indices, labels)
+            PATH_REF_TRAJECS, 400, 200, qpos_indices, q_vel_indices)
 
         # setup pyplot
         self.plt = config_pyplot(fig_size=True, font_size=12,
@@ -127,7 +127,7 @@ class StraightWalkingTrajectories(BaseReferenceTrajectories):
         # mirror right step and use it as left step
         if is_mod(MOD_SYMMETRIC_WALK): self._symmetric_walk()
         # current step
-        self._step = self._data
+        self._step = np.concatenate([self._qpos_full, self._qvel_full], axis=0)
         # distance walked so far (COM X Position)
         self.dist = 0
         # flag to indicate the last step in the refs was reached
@@ -183,9 +183,6 @@ class StraightWalkingTrajectories(BaseReferenceTrajectories):
         if not (phase >= 0 and phase <= 1):
            print(f'Phase Variable should be between 0 and 1 but was {phase}')
         return phase
-
-    def get_ref_kinmeatics(self):
-        return self.get_qpos(), self.get_qvel()
 
     def get_kinematic_ranges(self):
         '''Returns the maximum range of qpos and qvel in reference trajecs.'''
@@ -332,7 +329,8 @@ class StraightWalkingTrajectories(BaseReferenceTrajectories):
         data = data.flatten()
         # contains the data of all steps
         self.data = data
-        return data[0]
+        n_dims = len(self._qpos_indices)
+        return data[0][:n_dims, :], data[0][n_dims:, :]
 
     def _get_next_step(self):
         """

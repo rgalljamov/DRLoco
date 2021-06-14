@@ -10,10 +10,6 @@ from scripts.common.utils import log, is_remote, \
     exponential_running_smoothing as smooth, get_torque_ranges
 from scripts.ref_trajecs.straight_walk_trajecs import StraightWalkingTrajectories as RefTrajecs
 
-
-# flag if ref trajectories are played back
-_play_ref_trajecs = False
-
 # pause sim on startup to be able to change rendering speed, camera perspective etc.
 pause_mujoco_viewer_on_start = True and not is_remote()
 
@@ -36,7 +32,9 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         # we might want to weaken ET conditions or monitor and plot data
         self._EVAL_MODEL = False
         # control desired walking speed
-        self.FOLLOW_DESIRED_SPEED_PROFILE = False
+        self._FOLLOW_DESIRED_SPEED_PROFILE = False
+        # flag if ref trajectories are played back
+        self._PLAYBACK_REF_TRAJECS = False
 
         # track individual reward components
         self.pos_rew, self.vel_rew, self.com_rew = 0,0,0
@@ -236,13 +234,13 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         return max_qpos_deltas
 
     def playback_ref_trajectories(self, timesteps=2000):
-        global _play_ref_trajecs
-        _play_ref_trajecs = True
+        self._PLAYBACK_REF_TRAJECS = True
 
         from gym_mimic_envs.monitor import Monitor
         env = Monitor(self)
 
         env.reset()
+
         for i in range(timesteps):
             self.refs.next()
             ZERO_INPUTS = False
@@ -254,10 +252,11 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             else:
                 self.set_joint_kinematics_in_sim()
             # self.step(np.zeros_like(self.action_space.sample()))
-            self.sim.forward()
-            self.render()
+            for _ in range(self._frame_skip):
+                self.sim.forward()
+                self.render()
 
-        _play_ref_trajecs = False
+        self._PLAYBACK_REF_TRAJECS = False
         self.close()
         raise SystemExit('Environment intentionally closed after playing back trajectories.')
 
@@ -267,7 +266,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             to set the specified qpos and qvel values. """
         old_state = self.sim.get_state()
         if qpos is None or qvel is None:
-            qpos, qvel = self.refs.get_ref_kinmeatics()
+            qpos, qvel = self.refs.get_reference_trajectories()
         new_state = mujoco_py.MjSimState(old_state.time, qpos, qvel,
                                          old_state.act, old_state.udd_state)
         self.sim.set_state(new_state)
@@ -286,7 +285,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         Hint: The desired velocity is one of the state dimensions
         and will be set from the generated trajectory in _get_obs.
         '''
-        self.FOLLOW_DESIRED_SPEED_PROFILE = True
+        self._FOLLOW_DESIRED_SPEED_PROFILE = True
 
         ### generate the speed profile
         n_profile_sections = len(speeds) - 1
@@ -344,14 +343,14 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
     def _get_obs(self):
         qpos, qvel = self.get_joint_kinematics()
 
-        if self.FOLLOW_DESIRED_SPEED_PROFILE:
+        if self._FOLLOW_DESIRED_SPEED_PROFILE:
             i_des_speed = ep_dur % len(self.desired_walking_speed_trajectory)
             self.desired_walking_speed = self.desired_walking_speed_trajectory[i_des_speed]
         else:
             # TODO: during evaluation when speed control is inactive, we should just specify a constant speed
             #  when speed control is not active, set the speed to a constant value from the config
             #  During training, we still should use the step vel from the mocap!
-            self.desired_walking_speed = self.refs.get_step_velocity()
+            self.desired_walking_speed = self.refs.get_desired_walking_velocity_vector()
     
         # phase = self.refs.get_phase_variable()
         phase = self.estimate_phase_from_hip_joint_phase_plot(qpos, qvel)
@@ -359,7 +358,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         # remove COM x position as the action should be independent of it
         qpos = qpos[1:]
 
-        obs = np.concatenate([np.array([phase, self.desired_walking_speed]), qpos, qvel]).ravel()
+        obs = np.concatenate([[phase, self.desired_walking_speed], qpos, qvel]).ravel()
 
         # when we mirror the policy (phase based mirr), mirror left step
         if cfg.is_mod(cfg.MOD_MIRR_POLICY) and self.refs.is_step_left():
@@ -472,7 +471,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         self.dynamics_randomization()
 
         # get desired qpos and qvel from the refs (also include the trunk COM positions and vels)
-        qpos, qvel = self.get_init_state(not self.is_evaluation_on() and not self.FOLLOW_DESIRED_SPEED_PROFILE)
+        qpos, qvel = self.get_init_state(not self.is_evaluation_on() and not self._FOLLOW_DESIRED_SPEED_PROFILE)
         # apply the refs kinematics to the simulation
         self.set_state(qpos, qvel)
 
@@ -490,7 +489,9 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
                 "please add sites to each corner of your walker's feet (MJCF file)!"
             lowest_foot_z_pos = np.min(foot_corner_positions[:, -1])
             # and shift the trunks COM Z position to have contact between ground and lowest foot point
-            qpos[2] -= lowest_foot_z_pos
+            qpos[self._get_COM_Z_pos_index()] -= lowest_foot_z_pos
+            # also adjust the reference trajectories COM Z position
+            self.refs.adjust_COM_Z_pos(lowest_foot_z_pos)
             # set the new state with adjusted trunk COM position in the simulation
             self.set_state(qpos, qvel)
 
@@ -516,7 +517,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
 
     def get_ref_kinematics(self, exclude_com=False, concat=False):
-        qpos, qvel = self.refs.get_ref_kinmeatics()
+        qpos, qvel = self.refs.get_reference_trajectories()
         if exclude_com:
             qpos = self._remove_by_indices(qpos, self._get_COM_indices())
             qvel = self._remove_by_indices(qvel, self._get_COM_indices())
@@ -592,7 +593,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         - does the characters COM in Z direction is below a certain point
         - does the characters COM in Y direction deviated from straight walking
         """
-        if _play_ref_trajecs:
+        if self._PLAYBACK_REF_TRAJECS:
             return [False]*4
 
         qpos = self.get_qpos()
@@ -619,7 +620,8 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             trunk_ang_front, trunk_ang_saggit, trunk_ang_axial = trunk_angs
             front_dev, sag_dev, ax_dev = np.abs(trunk_angs - ref_trunk_angs)
             trunk_ang_front_exceeded = front_dev > max_front_dev
-            trunk_ang_axial_exceeded = ax_dev > max_axial_dev
+            # axial deviation only required for straight walking
+            trunk_ang_axial_exceeded = False and ax_dev > max_axial_dev
             trunk_ang_sag_exceeded = trunk_ang_saggit > max_pos_sag or trunk_ang_saggit < max_neg_sag
             trunk_ang_exceeded = trunk_ang_sag_exceeded or trunk_ang_front_exceeded \
                                  or trunk_ang_axial_exceeded
@@ -682,6 +684,15 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         in the considered robot model, e.g. [0,1,2]
 
         Caution: Do not include trunk rotational joints here.
+        """
+        raise NotImplementedError
+
+
+    def _get_COM_Z_pos_index(self):
+        """
+        Returns the index of the COM Z position in the considered robot model.
+        Required for optimizing the ground contact
+        on episode initialization. See reset_model() for details.
         """
         raise NotImplementedError
 

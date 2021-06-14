@@ -49,31 +49,17 @@ class MimicWalker3dEnv(MimicEnv):
         self.viewer.cam.lookat[2] = 1.15
         self.viewer.cam.elevation = -20
 
-        # ----------------------------
-        # Methods we override:
-        # ----------------------------
+    # ----------------------------
+    # Methods we override:
+    # ----------------------------
 
     def _get_COM_indices(self):
-        """
-        Needed to distinguish between joint and COM kinematics.
-
-        Returns a list of indices pointing at COM joint position/index
-        in the considered robot model, e.g. [0,1,2]
-        """
         return [0,1,2]
 
     def _get_trunk_rot_joint_indices(self):
         return [3, 4, 5]
 
     def _get_not_actuated_joint_indices(self):
-        """
-        Needed for playing back reference trajectories
-        by using position servos in the actuated joints.
-
-        @returns a list of indices specifying indices of
-        joints in the considered robot model that are not actuated.
-        Example: return [0,1,2]
-        """
         return self._get_COM_indices() + [3,4,5]
 
     def _get_max_actuator_velocities(self):

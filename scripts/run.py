@@ -47,10 +47,11 @@ duration_secs = 8
 # which model would you like to run
 FROM_PATH = False
 PATH = path_agent
-if not PATH.endswith('/'): PATH += '/'
 checkpoint = 'final' # 'ep_ret2100_20M' # '33_min24mean24' # 'ep_ret2000_7M' #'mean_rew60'
 
 if FROM_PATH:
+    if not PATH.endswith('/'): PATH += '/'
+
     # check if correct reference trajectories are used
     if cfg.MOD_REFS_RAMP in PATH and not cfg.is_mod(cfg.MOD_REFS_RAMP):
         raise AssertionError('Model trained on ramp-trajecs but is used with constant speed trajecs!')
@@ -62,11 +63,13 @@ if FROM_PATH:
 
     env = load_env(checkpoint, PATH, cfg.env_id)
 else:
-    # env = gym.make(cfg.env_id)
-    env = gym.make('MimicWalker3dHip-v0')
+    env_id = 'MimicWalker3dHip-v0' # 'MimicWalker3d-v0' # cfg.env_id
+    env = gym.make(env_id)
     env = Monitor(env)
     vec_env = env
-    # env.playback_ref_trajectories(10000, pd_pos_control=True)
+    obs = vec_env.reset()
+    env.activate_evaluation()
+    env.playback_ref_trajectories(2000)
 
 if not isinstance(env, Monitor):
     # VecNormalize wrapped DummyVecEnv
@@ -82,8 +85,6 @@ env.activate_evaluation()
 
 des_speeds = []
 com_speeds = []
-
-env.playback_ref_trajectories(2000)
 
 for i in range(10000):
 
