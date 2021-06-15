@@ -63,7 +63,7 @@ if FROM_PATH:
 
     env = load_env(checkpoint, PATH, cfg.env_id)
 else:
-    env_id = 'MimicWalker3dHip-v0' # 'MimicWalker3d-v0' # cfg.env_id
+    env_id = 'MimicWalker165cm65kg-v0' # 'MimicWalker3dHip-v0' # 'MimicWalker3d-v0' # cfg.env_id
     env = gym.make(env_id)
     env = Monitor(env)
     vec_env = env

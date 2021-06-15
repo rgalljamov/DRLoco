@@ -78,7 +78,7 @@ clip_end = 0.1 if is_mod(MOD_CLIPRANGE_SCHED) else cliprange
 clip_exp_slope = 5
 
 # just for logging to wandb
-peak_joint_torques = cfg.PEAK_JOINT_TORQUES
+peak_joint_torques = cfg.PEAK_LEG_JOINT_TORQUES
 walker_xml_file = cfg.WALKER_MJC_XML_FILE
 
 hid_layer_sizes = cfg.hid_layer_sizes

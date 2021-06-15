@@ -42,9 +42,14 @@ SIM_FREQ = 1000
 # control frequency in Hz
 CTRL_FREQ = 200
 # does the model uses joint torques (True) or target angles (False)?
+# todo: remove this flag as all our models output torque
 ENV_OUT_TORQUE = True
+# does the robot model comes with a 3-DOF lumbar joint?
+HAS_LUMBAR_JOINTS = True
 # peak joint torques [hip_sag, hip_front, knee_sag, ank_sag], same for both sides
-PEAK_JOINT_TORQUES = [300]*5 # [50]*3 + [5] # [300, 300, 300, 300] #
+PEAK_LEG_JOINT_TORQUES = [300] * 5 # [50]*3 + [5] # [300, 300, 300, 300] #
+# peak lumbar joint torques
+PEAK_LUMBAR_JOINT_TORQUES = [500] * 3
 
 
 # -----------------------------

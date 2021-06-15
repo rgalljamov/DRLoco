@@ -51,7 +51,8 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         self.control_freq = self._sim_freq / self._frame_skip
         # The motor torque ranges should always be specified in the config file
         # and overwrite the forcerange in the .MJCF file
-        self.model.actuator_forcerange[:, :] = get_torque_ranges(*cfgl.PEAK_JOINT_TORQUES)
+        self.model.actuator_forcerange[:, :] = get_torque_ranges(*cfgl.PEAK_LEG_JOINT_TORQUES,
+                                                                 *cfgl.PEAK_LUMBAR_JOINT_TORQUES)
 
 
     def step(self, action):
@@ -140,7 +141,10 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             a = np.clip(a, -1, 1)
             # scale the actions with joint peak torques
             # *2: peak torques are the same for both sides
-            a *= cfgl.PEAK_JOINT_TORQUES * 2
+            peak_joint_torques = cfgl.PEAK_LEG_JOINT_TORQUES * 2
+            if cfgl.HAS_LUMBAR_JOINTS:
+                peak_joint_torques = cfgl.PEAK_LUMBAR_JOINT_TORQUES + peak_joint_torques
+            a *= peak_joint_torques
 
         # policy outputs target angles for PD position controllers
         else:
