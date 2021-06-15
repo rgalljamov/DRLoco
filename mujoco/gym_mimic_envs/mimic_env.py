@@ -489,7 +489,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
                 "please add sites to each corner of your walker's feet (MJCF file)!"
             lowest_foot_z_pos = np.min(foot_corner_positions[:, -1])
             # and shift the trunks COM Z position to have contact between ground and lowest foot point
-            qpos[self._get_COM_Z_pos_index()] -= lowest_foot_z_pos
+            qpos[self._get_COM_indices()[-1]] -= lowest_foot_z_pos
             # also adjust the reference trajectories COM Z position
             self.refs.adjust_COM_Z_pos(lowest_foot_z_pos)
             # set the new state with adjusted trunk COM position in the simulation
@@ -681,18 +681,9 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         Needed to distinguish between joint and COM kinematics.
 
         Returns a list of indices pointing at COM joint position/index
-        in the considered robot model, e.g. [0,1,2]
+        in the considered robot model ([i_x, i_y, i_z]), e.g. [0,1,2].
 
         Caution: Do not include trunk rotational joints here.
-        """
-        raise NotImplementedError
-
-
-    def _get_COM_Z_pos_index(self):
-        """
-        Returns the index of the COM Z position in the considered robot model.
-        Required for optimizing the ground contact
-        on episode initialization. See reset_model() for details.
         """
         raise NotImplementedError
 

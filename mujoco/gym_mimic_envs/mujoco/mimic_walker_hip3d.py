@@ -6,21 +6,22 @@ from gym_mimic_envs.mujoco.mimic_walker3d import MimicWalker3dEnv, qpos_indices,
 
 # specify which joint trajectories are required for the current walker
 walker_qpos_indices = [refs.PELVIS_TX, refs.PELVIS_TZ, refs.PELVIS_TY,
-                       refs.PELVIS_LIST, refs.PELVIS_TILT, refs.PELVIS_ROTATION,
+                       refs.LUMBAR_BENDING, refs.LUMBAR_EXTENSION, refs.PELVIS_ROTATION,
                        refs.HIP_FLEXION_R, refs.HIP_ADDUCTION_R, refs.HIP_ROTATION_R,
                        refs.KNEE_ANG_R, refs.ANKLE_ANG_R,
                        refs.HIP_FLEXION_L, refs.HIP_ADDUCTION_L, refs.HIP_ROTATION_L,
                        refs.KNEE_ANG_L, refs.ANKLE_ANG_L]
 
 adaptations = {
+    refs.PELVIS_TY: -1,
+    refs.PELVIS_TY: 1.65 / 1.75,
     refs.PELVIS_ROTATION: -1,
     refs.KNEE_ANG_R: -1,
     refs.KNEE_ANG_L: -1,
     refs.HIP_FLEXION_R: -1,
     refs.HIP_FLEXION_L: -1,
-    refs.HIP_ADDUCTION_R: -1,
     refs.HIP_ADDUCTION_L: -1,
-    refs.PELVIS_TY: 1.78/1.65,
+    refs.HIP_ROTATION_L: -1
 }
 
 # the indices in the joint position and joint velocity matrices are the same for all joints
@@ -45,9 +46,6 @@ class MimicWalker3dHipEnv(MimicEnv):
 
     def _get_COM_indices(self):
         return [0,1,2]
-
-    def _get_COM_Z_pos_index(self):
-        return 2
 
     def _get_trunk_rot_joint_indices(self):
         return [3, 4, 5]
