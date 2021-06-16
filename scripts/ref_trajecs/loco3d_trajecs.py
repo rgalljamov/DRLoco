@@ -43,4 +43,4 @@ class Loco3dReferenceTrajectories(BaseReferenceTrajectories):
         return PELVIS_TY
 
     def get_desired_walking_velocity_vector(self):
-        return np.array([1, 0])
+        return self.get_qvel()[:2]

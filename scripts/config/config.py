@@ -13,11 +13,12 @@ MAX_EPISODE_STEPS = 3000
 
 # TODO: remove COM reward, train longer with smaller LR decay, use exp clip_range sched
 # configure Weights & Biases
-WB_PROJECT_NAME = 'no_phase'
+WB_PROJECT_NAME = 'debug_loco3d'
 # todo: definitely also try increasing the velocity reward weight
-WB_RUN_NAME = 'phase_ang, init_logstd = -1.25, rew55'
-WB_RUN_DESCRIPTION = '' \
-                     'Reduce the logstd to -1.25, instead of -0.7' \
+WB_RUN_NAME = 'first test'
+WB_RUN_DESCRIPTION = 'Starting training of the 2seg upper body model ' \
+                     'AND loco3d mocaps without any further adjustments.' \
+                     '' \
                      'Estimate the phase variable from the hip joint phase plot angle. ' \
                      'Use the so far best batch and minibatch sizes. ' \
                      'Implemented a custom policy so far only replicating the same properties as the MLP policy. ' \
@@ -34,7 +35,7 @@ WB_RUN_DESCRIPTION = '' \
 # -----------------------------
 
 # the registered gym environment id, e.g. 'Walker2d-v2'
-ENV_ID = 'MimicWalker3d-v0'
+ENV_ID = 'MimicWalker165cm65kg-v0' # 'MimicWalker3d-v0'
 # walker XML file
 WALKER_MJC_XML_FILE = 'walker3d_hip3d.xml' # 'walker3d_flat_feet.xml' # 'walker3d_flat_feet_lowmass.xml' # 'walker3d_flat_feet_40kg_140cm.xml' #
 # simulation frequency... overwrites the frequency specified in the xml file

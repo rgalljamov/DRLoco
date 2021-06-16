@@ -42,5 +42,9 @@ class MimicWalker165cm65kgEnv(MimicEnv):
     def _get_trunk_rot_joint_indices(self):
         return [3, 4, 5]
 
+    def get_joint_indices_for_phase_estimation(self):
+        # return both hip joint indices in the saggital plane
+        return [9, 14]
+
     def _get_not_actuated_joint_indices(self):
         return self._get_COM_indices() + [3,4,5]

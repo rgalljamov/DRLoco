@@ -57,8 +57,8 @@ class Monitor(gym.Wrapper):
         self.grfs_right = []
         self.moved_distance_smooth = 0
         # track phases during initialization and ET
-        self.et_phases = []
-        self.rsi_phases = []
+        self.et_positions = []
+        self.rsi_positions = []
         # which phases lead to episode lengths smaller than the running average
         self.difficult_rsi_phases = []
         # track reward components
@@ -90,8 +90,8 @@ class Monitor(gym.Wrapper):
         obs, reward, done, _ = self.env.step(action)
 
         if self.ep_len == 0:
-            self.init_phase = self.env.refs.get_phase_variable()
-            self.rsi_phases.append(self.init_phase)
+            self.init_pos = self.env.refs._pos
+            self.rsi_positions.append(self.init_pos)
         self.ep_len += 1
 
         self.reward = reward
@@ -104,8 +104,8 @@ class Monitor(gym.Wrapper):
 
         if done:
             # get phase ET was detected at
-            et_phase = self.env.refs.get_phase_variable()
-            self.et_phases.append(et_phase)
+            et_pos = self.env.refs._pos
+            self.et_positions.append(et_pos)
 
             ep_rewards = self.rewards[-self.ep_len:]
             mean_reward = np.mean(ep_rewards[:-1])
@@ -121,7 +121,7 @@ class Monitor(gym.Wrapper):
             self.ep_lens.append(self.ep_len)
             self.ep_len_smoothed = smooth('ep_len', self.ep_len, 0.75)
             if self.ep_len < self.ep_len_smoothed*0.75:
-                self.difficult_rsi_phases.append(self.init_phase)
+                self.difficult_rsi_phases.append(self.init_pos)
             self.ep_len = 0
 
 

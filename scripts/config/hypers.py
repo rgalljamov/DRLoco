@@ -66,10 +66,10 @@ modification = '/'.join(modifications_list)
 DEBUG = cfg.DEBUG_TRAINING or not sys.gettrace() is None
 MAX_DEBUG_STEPS = int(2e4) # stop training thereafter!
 
-rew_weights = '5500'
+rew_weights = '8200'
 # should that really matter? I think not
 ent_coef = {100: -0.0075, 200: -0.0075, 400: -0.00375}[CTRL_FREQ]
-init_logstd = -1.25 # 0.7
+init_logstd = -0.7
 pi_out_init_scale = 0.001
 cliprange = 0.15
 # only for cliprange scheduling

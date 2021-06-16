@@ -1,8 +1,9 @@
 '''
 Interface for environments using reference trajectories.
 '''
-import gym, mujoco_py
 import numpy as np
+import typing as typ
+import gym, mujoco_py
 from gym.envs.mujoco.mujoco_env import MujocoEnv
 from scripts.config import config as cfgl
 from scripts.config import hypers as cfg
@@ -308,22 +309,36 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             plt.show()
 
 
-    def estimate_phase_from_hip_joint_phase_plot(self, qpos, qvel, debug=False):
-        # estimate the phase from a phase plot of the hip joint
-        hip_sag_joint_index = 6
-        hip_pos_sag = qpos[hip_sag_joint_index]
-        hip_vel_sag = qvel[hip_sag_joint_index]
+    def estimate_phase_vars_from_joint_phase_plots(self, qpos, qvel, debug=False):
+        """
+        For a detailed description, please see the doc string of the
+        function get_joint_indices_for_phase_estimation().
+        :param qpos, qvel: current joint position and velocities of the walker
+        """
 
-        x, y = hip_pos_sag, hip_vel_sag
-        phase_angle = np.arctan2(y, x)
+        # estimate multiple phase variables from the phase plot of multiple joints
+        phases = []
+        joint_indices = self.get_joint_indices_for_phase_estimation()
+
+        for joint_index in joint_indices:
+            pos = qpos[joint_index]
+            vel = qvel[joint_index]
+            phase_angle = np.arctan2(vel, pos)
+            # normalize the phase angle to the range [-1, 1]
+            phases += [phase_angle / np.pi]
 
         if debug:
             # collect the hip pos and vel for the phase plot
-            self.hip_pos.append(hip_pos_sag)
-            self.hip_vel.append(hip_vel_sag)
-            self.phase_angles.append(phase_angle)
+            try:
+                self.hip_pos.append(pos)
+                self.hip_vel.append(vel)
+                self.phase_angles.append(phase_angle/np.pi)
+            except:
+                self.hip_pos = [] + [pos]
+                self.hip_vel = [] + [vel]
+                self.phase_angles = [] + [phase_angle/np.pi]
 
-            if len(self.hip_pos) >= 1000:
+            if len(self.hip_pos) >= 200:
                 from matplotlib import pyplot as plt
                 from scripts.common.utils import smooth_exponential as smooth
                 fig, subs = plt.subplots(1, 2)
@@ -342,7 +357,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
                 exit(33)
 
         # scale the phase angle to be in range [-1,1]
-        return phase_angle / np.pi
+        return phases
 
     def _get_obs(self):
         qpos, qvel = self.get_joint_kinematics()
@@ -357,12 +372,12 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             self.desired_walking_speed = self.refs.get_desired_walking_velocity_vector()
     
         # phase = self.refs.get_phase_variable()
-        phase = self.estimate_phase_from_hip_joint_phase_plot(qpos, qvel)
+        phases = self.estimate_phase_vars_from_joint_phase_plots(qpos, qvel)
 
         # remove COM x position as the action should be independent of it
         qpos = qpos[1:]
 
-        obs = np.concatenate([[phase, self.desired_walking_speed], qpos, qvel]).ravel()
+        obs = np.array([*phases, *self.desired_walking_speed, *qpos, *qvel])
 
         # when we mirror the policy (phase based mirr), mirror left step
         if cfg.is_mod(cfg.MOD_MIRR_POLICY) and self.refs.is_step_left():
@@ -472,7 +487,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
     def reset_model(self):
 
-        self.dynamics_randomization()
+        # self.dynamics_randomization()
 
         # get desired qpos and qvel from the refs (also include the trunk COM positions and vels)
         qpos, qvel = self.get_init_state(not self.is_evaluation_on() and not self._FOLLOW_DESIRED_SPEED_PROFILE)
@@ -692,7 +707,25 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         raise NotImplementedError
 
     def _get_trunk_rot_joint_indices(self):
-        """ Return the indices of the rotational joints of the trunk."""
+        """ Returns the indices of the rotational joints of the trunk."""
+        raise NotImplementedError
+
+    def get_joint_indices_for_phase_estimation(self) -> typ.Iterable[int]:
+        """
+        A phase variable indicating the percentage of a step or gait cycle
+        turned out to be an important feature for learning locomotion with DRL.
+
+        During training, we can calculate the phase variable from the reference motion,
+        however when running the model, we don't have access to the phase variable any more.
+
+        An approximation to the phase variable can be obtained from the
+        phase plot of individual leg joints in the saggital plane.
+        A good joint candidate is the hip. And we believe, two hip joint phase plots
+        deliver more useful information than one. Other joints could be considered in addition, too.
+
+        This method should return a list of joint indices, specifying
+        the joints of the walker that should be used to estimate the phase variable.
+        """
         raise NotImplementedError
 
     def _get_not_actuated_joint_indices(self):
@@ -703,14 +736,6 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         @returns a list of indices specifying indices of
         joints in the considered robot model that are not actuated.
         Example: return [0,1,2]
-        """
-        raise NotImplementedError
-
-    def _get_max_actuator_velocities(self):
-        """
-        Needed to calculate the max mechanical power for the energy efficiency reward.
-        :returns: A numpy array containing the maximum absolute velocity peaks
-                  of each actuated joint. E.g. np.array([6, 12, 12, 6, 12, 12])
         """
         raise NotImplementedError
 
