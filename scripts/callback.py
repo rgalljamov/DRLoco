@@ -7,6 +7,7 @@ from scripts.config import hypers as cfg
 from scripts.common import utils
 from torch.utils.tensorboard import SummaryWriter
 from stable_baselines3.common.callbacks import BaseCallback
+from scripts.config.config import CTRL_FREQ
 
 # define intervals/criteria for saving the model
 # save everytime the agent achieved an additional 10% of the max possible return
@@ -295,23 +296,22 @@ class TrainingMonitor(BaseCallback):
         eval_n_times = cfg.EVAL_N_TIMES if self.num_timesteps > 1e6 else 10
         for i in range(eval_n_times):
             ep_dur = 0
-            walked_distance = 0
             rewards = []
             while True:
                 ep_dur += 1
                 action, _ = eval_model.predict(obs, deterministic=True)
                 obs, reward, done, info = eval_env.step(action)
                 if done:
+                    walked_distance = mimic_env.get_walked_distance()
                     moved_distances.append(walked_distance)
                     mean_rewards.append(np.mean(rewards))
                     ep_durs.append(ep_dur)
-                    mean_com_x_vel = walked_distance/(ep_dur/cfg.CTRL_FREQ)
+                    mean_com_x_vel = walked_distance / (ep_dur / cfg.CTRL_FREQ)
                     mean_com_x_vels.append(mean_com_x_vel)
                     break
                 else:
-                    # we cannot get the walked distance after episode termination,
-                    # as when done=True is returned, the env was already reseted.
-                    walked_distance = mimic_env.data.qpos[0]
+                    # we cannot get the reward after episode termination,
+                    # as when done=True is returned, the env is already resetted.
                     # undo reward normalization, don't save last reward
                     reward = reward * np.sqrt(eval_env.ret_rms.var + 1e-8)
                     rewards.append(reward[0])

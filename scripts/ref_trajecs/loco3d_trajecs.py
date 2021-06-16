@@ -42,5 +42,7 @@ class Loco3dReferenceTrajectories(BaseReferenceTrajectories):
     def _get_COM_Z_pos_index(self):
         return PELVIS_TY
 
-    def get_desired_walking_velocity_vector(self):
-        return self.get_qvel()[:2]
+    def get_desired_walking_velocity_vector(self, do_eval):
+        # during evaluation, let the agent walk just straight.
+        # This way, we can retain our current evaluation metrics.
+        return [1.2, 0] if do_eval else self.get_qvel()[:2]

@@ -28,6 +28,8 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         self.refs = ref_trajecs
         # set simulation and control frequency
         self._sim_freq, self._frame_skip = self.get_sim_freq_and_frameskip()
+        # flag required for a workaround due to MujocoEnv calling step() during initialization
+        self.finished_init = False
 
         # when we evaluate a model during or after the training,
         # we might want to weaken ET conditions or monitor and plot data
@@ -42,18 +44,22 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         self.mean_epret_smoothed = 0
         # track running mean of the return and use it for ET reward
         self.ep_rews = []
+        # track the so far walked distance by integrating the COM velocity vector
+        self.walked_distance = 0
+        # set the control frequency
+        self.control_freq = self._sim_freq / self._frame_skip
 
         # initialize Mujoco Environment
         MujocoEnv.__init__(self, xml_path, self._frame_skip)
         # init EzPickle (think it is required to be able to save and load models)
         gym.utils.EzPickle.__init__(self)
-        # make sure simulation and control run at the desired frequency
+        # make sure simulation runs at the desired frequency
         self.model.opt.timestep = 1 / self._sim_freq
-        self.control_freq = self._sim_freq / self._frame_skip
         # The motor torque ranges should always be specified in the config file
         # and overwrite the forcerange in the .MJCF file
         self.model.actuator_forcerange[:, :] = get_torque_ranges(*cfgl.PEAK_LEG_JOINT_TORQUES,
                                                                  *cfgl.PEAK_LUMBAR_JOINT_TORQUES)
+        self.finished_init = True
 
 
     def step(self, action):
@@ -83,6 +89,15 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         # get state observation after simulation step
         obs = self._get_obs()
 
+        # workaround due to MujocoEnv calling step() during __init__()
+        if not self.finished_init:
+            return obs, 3.33, False, {}
+
+        # get the moved distance by integrating the velocity vector
+        vel_vec = self.data.qvel[:2]
+        vel = np.linalg.norm(vel_vec)
+        self.walked_distance += vel * 1 / self.control_freq
+
         # get imitation reward
         reward = self.get_imitation_reward()
 
@@ -93,16 +108,15 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         max_eplen_reached = ep_dur >= cfg.ep_dur_max or walked_distance > cfg.max_distance + 0.01
         # terminate the episode?
         done = com_z_pos < 0.5 or max_eplen_reached
+        if not self.is_evaluation_on():
+            done = done or reward < cfgl.ET_REWARD
 
-        if self.is_evaluation_on():
-            done = com_z_pos < 0.5 or max_eplen_reached
-        else:
-            terminate_early, _, _, _ = self.do_terminate_early()
-            done = done or terminate_early
-            if done:
-                # if episode finished, recalculate the reward
-                # to punish falling hard and rewarding reaching episode's end a lot
-                reward = self.get_ET_reward(max_eplen_reached, terminate_early)
+        # todo: do we need this necessarily in the simple straight walking case?
+        # terminate_early, _, _, _ = self.do_terminate_early()
+        if done:
+            # if episode finished, recalculate the reward
+            # to punish falling hard and rewarding reaching episode's end a lot
+            reward = self.get_ET_reward(max_eplen_reached)
 
         # reset episode duration if episode has finished
         if done: ep_dur = 0
@@ -112,7 +126,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         return obs, reward, done, {}
 
 
-    def get_ET_reward(self, max_eplen_reached, terminate_early):
+    def get_ET_reward(self, max_eplen_reached):
         """ Punish falling hard and reward reaching episode's end a lot. """
 
         # calculate a running mean of the ep_return
@@ -276,6 +290,8 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
                                          old_state.act, old_state.udd_state)
         self.sim.set_state(new_state)
 
+    def get_walked_distance(self):
+        return self.walked_distance
 
     def activate_speed_control(self,
                                speeds: list = [1.0, 1.0],
@@ -369,7 +385,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             # TODO: during evaluation when speed control is inactive, we should just specify a constant speed
             #  when speed control is not active, set the speed to a constant value from the config
             #  During training, we still should use the step vel from the mocap!
-            self.desired_walking_speed = self.refs.get_desired_walking_velocity_vector()
+            self.desired_walking_speed = self.refs.get_desired_walking_velocity_vector(self._EVAL_MODEL)
     
         # phase = self.refs.get_phase_variable()
         phases = self.estimate_phase_vars_from_joint_phase_plots(qpos, qvel)
@@ -487,6 +503,9 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
     def reset_model(self):
 
+        # reset the so far walked distance
+        self.walked_distance = 0
+
         # self.dynamics_randomization()
 
         # get desired qpos and qvel from the refs (also include the trunk COM positions and vels)
@@ -596,17 +615,18 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         pos_rew = self.get_pose_reward()
         vel_rew = self.get_vel_reward()
         com_rew = self.get_com_reward()
-        pow_rew = self.get_energy_reward() if w_pow != 0 else 0
+        # pow_rew = self.get_energy_reward() if w_pow != 0 else 0
 
         self.pos_rew, self.vel_rew, self.com_rew = pos_rew, vel_rew, com_rew
 
-        imit_rew = w_pos * pos_rew + w_vel * vel_rew + w_com * com_rew + w_pow * pow_rew
+        imit_rew = w_pos * pos_rew + w_vel * vel_rew + w_com * com_rew
 
         return imit_rew
 
 
     def do_terminate_early(self):
         """
+        CAUTION: Only makes sense in the context of straight walking!
         Early Termination based on multiple checks:
         - does the character exceeds allowed trunk angle deviations
         - does the characters COM in Z direction is below a certain point

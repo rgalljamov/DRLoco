@@ -63,7 +63,7 @@ modification = '/'.join(modifications_list)
 # ----------------------------------------------------------------------------------
 # Weights and Biases
 # ----------------------------------------------------------------------------------
-DEBUG = cfg.DEBUG_TRAINING or not sys.gettrace() is None
+DEBUG = False # cfg.DEBUG_TRAINING or not sys.gettrace() is None
 MAX_DEBUG_STEPS = int(2e4) # stop training thereafter!
 
 rew_weights = '8200'
@@ -117,7 +117,7 @@ else:
 algo = 'ppo2'
 # number of experiences to collect, not training steps.
 mio_samples = cfg.MIO_SAMPLES
-n_envs = cfg.N_PARALLEL_ENVS if utils.is_remote() and not DEBUG else 2
+n_envs = cfg.N_PARALLEL_ENVS if utils.is_remote() and not DEBUG else 1
 minibatch_size = 512 * 4
 batch_size = (4096 * 4) if not DEBUG else 2*minibatch_size
 # to make PHASE based mirroring comparable with DUP, reduce the batch size

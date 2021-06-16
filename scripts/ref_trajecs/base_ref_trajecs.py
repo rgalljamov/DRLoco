@@ -144,12 +144,13 @@ class BaseReferenceTrajectories:
         """
         raise NotImplementedError
 
-    def get_desired_walking_velocity_vector(self) -> Iterable:
+    def get_desired_walking_velocity_vector(self, do_eval: bool = False) -> Iterable:
         """
         Returns the desired velocity vector as an iterable (e.g. [vx, vy])
         for the current position on the reference trajectories.
         This vector is used as part of the state observations. During training, the vector
         is derived from the reference trajectories. When running the trained model, the desired
         velocity is specified by the user.
+        :param do_eval: indicates if the model is currently evaluated (True) or training (False)
         """
         raise NotImplementedError

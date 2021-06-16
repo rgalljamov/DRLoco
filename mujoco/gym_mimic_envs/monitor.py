@@ -124,8 +124,7 @@ class Monitor(gym.Wrapper):
                 self.difficult_rsi_phases.append(self.init_pos)
             self.ep_len = 0
 
-
-            self.moved_distance_smooth = smooth('dist', self.env.data.qpos[0], 0.25)
+            self.moved_distance_smooth = smooth('dist', self.env.get_walked_distance(), 0.25)
 
             self.mean_abs_ep_torque_smoothed = \
                 smooth('mean_ep_tor', np.mean(self.ep_torques_abs), 0.75)

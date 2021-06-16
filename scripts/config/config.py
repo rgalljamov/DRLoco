@@ -10,13 +10,17 @@ USE_CPU = True
 MAX_WALKING_DISTANCE = 15
 # maximum length of an episode
 MAX_EPISODE_STEPS = 3000
+ET_REWARD = 0.0000001
 
-# TODO: remove COM reward, train longer with smaller LR decay, use exp clip_range sched
 # configure Weights & Biases
 WB_PROJECT_NAME = 'debug_loco3d'
 # todo: definitely also try increasing the velocity reward weight
-WB_RUN_NAME = 'first test'
-WB_RUN_DESCRIPTION = 'Starting training of the 2seg upper body model ' \
+WB_RUN_NAME = f'8M noETrew'
+WB_RUN_DESCRIPTION = 'Removed early termination based on a too low reward signal' \
+                     'Fixed a lot of issues in monitoring.' \
+                     'Evaluate the model by letting it walk straight. ' \
+                     'This way, we can retain all our previous evaluation metrics. ' \
+                     'Starting training of the 2seg upper body model ' \
                      'AND loco3d mocaps without any further adjustments.' \
                      '' \
                      'Estimate the phase variable from the hip joint phase plot angle. ' \
@@ -58,7 +62,7 @@ PEAK_LUMBAR_JOINT_TORQUES = [500] * 3
 # -----------------------------
 
 # number of training steps = samples to collect [in Millions]
-MIO_SAMPLES = 4
+MIO_SAMPLES = 8
 # how many parallel environments should be used to collect samples
 N_PARALLEL_ENVS = 8
 # network hidden layer sizes
