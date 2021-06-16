@@ -63,7 +63,7 @@ modification = '/'.join(modifications_list)
 # ----------------------------------------------------------------------------------
 # Weights and Biases
 # ----------------------------------------------------------------------------------
-DEBUG = False # cfg.DEBUG_TRAINING or not sys.gettrace() is None
+DEBUG = cfg.DEBUG_TRAINING or not sys.gettrace() is None
 MAX_DEBUG_STEPS = int(2e4) # stop training thereafter!
 
 rew_weights = '8200'
@@ -84,7 +84,7 @@ walker_xml_file = cfg.WALKER_MJC_XML_FILE
 hid_layer_sizes = cfg.hid_layer_sizes
 activation_fns = [th.nn.Tanh]*2
 gamma = {50:0.99, 100: 0.99, 200:0.995, 400:0.998}[CTRL_FREQ]
-rew_scale = 1
+rew_scale = 10
 alive_bonus = 0.2 * rew_scale
 # number of episodes per model evaluation
 EVAL_N_TIMES = 20

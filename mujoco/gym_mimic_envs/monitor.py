@@ -329,7 +329,7 @@ class Monitor(gym.Wrapper):
             PLOT_REWS = False
             if PLOT_REWS:
                 # add rewards and returns
-                from scripts.common.config import rew_scale, alive_bonus
+                from scripts.config.config import rew_scale, alive_bonus
                 rews = np.copy(self.rewards[-_trajec_buffer_length:])
                 rews -= alive_bonus
                 rews /= rew_scale

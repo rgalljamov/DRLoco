@@ -14,10 +14,6 @@ from scripts.ref_trajecs.straight_walk_trajecs import StraightWalkingTrajectorie
 # pause sim on startup to be able to change rendering speed, camera perspective etc.
 pause_mujoco_viewer_on_start = True and not is_remote()
 
-# monitor episode and training duration
-step_count = 0
-ep_dur = 0
-
 class MimicEnv(MujocoEnv, gym.utils.EzPickle):
     """ The base class to derive from to train an environment using the DeepMimic Approach."""
     def __init__(self: MujocoEnv, xml_path, ref_trajecs:RefTrajecs):
@@ -41,9 +37,11 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
         # track individual reward components
         self.pos_rew, self.vel_rew, self.com_rew = 0,0,0
-        self.mean_epret_smoothed = 0
-        # track running mean of the return and use it for ET reward
+        # track episode duration
+        self.ep_dur = 0
+        # track mean episode return for ET-reward calculation
         self.ep_rews = []
+        self.mean_epret_smoothed = 0
         # track the so far walked distance by integrating the COM velocity vector
         self.walked_distance = 0
         # set the control frequency
@@ -69,11 +67,6 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             self._get_viewer('human')._paused = True
             pause_mujoco_viewer_on_start = False
 
-        # monitor episode and training durations
-        global step_count, ep_dur
-        step_count += 1
-        ep_dur += 1
-
         action = self.rescale_actions(action)
 
         # when we're mirroring the policy (phase based mirroring), mirror the action
@@ -95,6 +88,10 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
         # get the moved distance by integrating the velocity vector
         vel_vec = self.data.qvel[:2]
+        # avoid high velocities due to numerical issues in the simulation
+        # very roughly assuming maximum speed of about 20 km/h
+        # not considering movement direction
+        vel_vec = np.clip(vel_vec, -5.5, 5.5)
         vel = np.linalg.norm(vel_vec)
         self.walked_distance += vel * 1 / self.control_freq
 
@@ -105,11 +102,9 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         com_z_pos = self.sim.data.qpos[self._get_COM_indices()[-1]]
         walked_distance = self.sim.data.qpos[0]
         # was max episode duration or max walking distance reached?
-        max_eplen_reached = ep_dur >= cfg.ep_dur_max or walked_distance > cfg.max_distance + 0.01
+        max_eplen_reached = self.ep_dur >= cfg.ep_dur_max or walked_distance > cfg.max_distance + 0.01
         # terminate the episode?
         done = com_z_pos < 0.5 or max_eplen_reached
-        if not self.is_evaluation_on():
-            done = done or reward < cfgl.ET_REWARD
 
         # todo: do we need this necessarily in the simple straight walking case?
         # terminate_early, _, _, _ = self.do_terminate_early()
@@ -118,8 +113,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             # to punish falling hard and rewarding reaching episode's end a lot
             reward = self.get_ET_reward(max_eplen_reached)
 
-        # reset episode duration if episode has finished
-        if done: ep_dur = 0
+
         # add alive bonus else
         else: reward += cfg.alive_bonus
 
@@ -137,8 +131,8 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         # reward = expected cumulative future reward
         if max_eplen_reached:
             # estimate future cumulative reward expecting getting the mean reward per step
-            mean_step_rew = self.mean_epret_smoothed / ep_dur
-            act_ret_est = np.sum(mean_step_rew * np.power(cfg.gamma, np.arange(ep_dur)))
+            mean_step_rew = self.mean_epret_smoothed / self.ep_dur
+            act_ret_est = np.sum(mean_step_rew * np.power(cfg.gamma, np.arange(self.ep_dur)))
             reward = act_ret_est
         # punish for ending the episode early
         else:
@@ -379,7 +373,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         qpos, qvel = self.get_joint_kinematics()
 
         if self._FOLLOW_DESIRED_SPEED_PROFILE:
-            i_des_speed = ep_dur % len(self.desired_walking_speed_trajectory)
+            i_des_speed = self.ep_dur % len(self.desired_walking_speed_trajectory)
             self.desired_walking_speed = self.desired_walking_speed_trajectory[i_des_speed]
         else:
             # TODO: during evaluation when speed control is inactive, we should just specify a constant speed
@@ -503,6 +497,8 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
     def reset_model(self):
 
+        # reset episode duration if episode has finished
+        self.ep_dur = 0
         # reset the so far walked distance
         self.walked_distance = 0
 
@@ -621,7 +617,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
         imit_rew = w_pos * pos_rew + w_vel * vel_rew + w_com * com_rew
 
-        return imit_rew
+        return imit_rew * cfg.rew_scale
 
 
     def do_terminate_early(self):

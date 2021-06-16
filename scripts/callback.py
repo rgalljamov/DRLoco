@@ -296,13 +296,13 @@ class TrainingMonitor(BaseCallback):
         eval_n_times = cfg.EVAL_N_TIMES if self.num_timesteps > 1e6 else 10
         for i in range(eval_n_times):
             ep_dur = 0
+            walked_distance = 0
             rewards = []
             while True:
                 ep_dur += 1
                 action, _ = eval_model.predict(obs, deterministic=True)
                 obs, reward, done, info = eval_env.step(action)
                 if done:
-                    walked_distance = mimic_env.get_walked_distance()
                     moved_distances.append(walked_distance)
                     mean_rewards.append(np.mean(rewards))
                     ep_durs.append(ep_dur)
@@ -310,8 +310,9 @@ class TrainingMonitor(BaseCallback):
                     mean_com_x_vels.append(mean_com_x_vel)
                     break
                 else:
-                    # we cannot get the reward after episode termination,
+                    # we cannot get the reward or walked distance after episode termination,
                     # as when done=True is returned, the env is already resetted.
+                    walked_distance = mimic_env.get_walked_distance()
                     # undo reward normalization, don't save last reward
                     reward = reward * np.sqrt(eval_env.ret_rms.var + 1e-8)
                     rewards.append(reward[0])

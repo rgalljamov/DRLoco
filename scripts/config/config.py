@@ -10,13 +10,12 @@ USE_CPU = True
 MAX_WALKING_DISTANCE = 15
 # maximum length of an episode
 MAX_EPISODE_STEPS = 3000
-ET_REWARD = 0.0000001
 
 # configure Weights & Biases
 WB_PROJECT_NAME = 'debug_loco3d'
 # todo: definitely also try increasing the velocity reward weight
-WB_RUN_NAME = f'8M noETrew'
-WB_RUN_DESCRIPTION = 'Removed early termination based on a too low reward signal' \
+WB_RUN_NAME = f'8M rew_scale10'
+WB_RUN_DESCRIPTION = 'Scaling the reward by 100. ' \
                      'Fixed a lot of issues in monitoring.' \
                      'Evaluate the model by letting it walk straight. ' \
                      'This way, we can retain all our previous evaluation metrics. ' \
