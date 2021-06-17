@@ -86,6 +86,9 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         if not self.finished_init:
             return obs, 3.33, False, {}
 
+        # increment episode duration
+        self.ep_dur += 1
+
         # get the moved distance by integrating the velocity vector
         vel_vec = self.data.qvel[:2]
         # avoid high velocities due to numerical issues in the simulation
@@ -100,9 +103,9 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
         # check if we entered a terminal state
         com_z_pos = self.sim.data.qpos[self._get_COM_indices()[-1]]
-        walked_distance = self.sim.data.qpos[0]
         # was max episode duration or max walking distance reached?
-        max_eplen_reached = self.ep_dur >= cfg.ep_dur_max or walked_distance > cfg.max_distance + 0.01
+        max_eplen_reached = self.ep_dur >= cfg.ep_dur_max or \
+                            self.walked_distance > cfg.max_distance + 0.1
         # terminate the episode?
         done = com_z_pos < 0.5 or max_eplen_reached
 

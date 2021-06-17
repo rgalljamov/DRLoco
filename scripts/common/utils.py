@@ -36,8 +36,8 @@ def import_pyplot():
 
 plt = import_pyplot()
 
-PLOT_FONT_SIZE = 22
-PLOT_TICKS_SIZE = 18
+PLOT_FONT_SIZE = 16
+PLOT_TICKS_SIZE = 12
 PLOT_LINE_WIDTH = 2
 
 def config_pyplot(fig_size=0.25, font_size=PLOT_FONT_SIZE, tick_size=PLOT_TICKS_SIZE,

@@ -42,7 +42,50 @@ class Loco3dReferenceTrajectories(BaseReferenceTrajectories):
     def _get_COM_Z_pos_index(self):
         return PELVIS_TY
 
-    def get_desired_walking_velocity_vector(self, do_eval):
-        # during evaluation, let the agent walk just straight.
-        # This way, we can retain our current evaluation metrics.
-        return [1.2, 0] if do_eval else self.get_qvel()[:2]
+    def get_desired_walking_velocity_vector(self, do_eval, debug=False):
+        if False and do_eval:
+            # during evaluation, let the agent walk just straight.
+            # This way, we can retain our current evaluation metrics.
+            return [1.2, 0.0]
+
+        # get the average velocities in x and z directions
+        # average over n seconds
+        n_seconds = 0.5
+        n_timesteps = int(n_seconds * self._sample_freq)
+        # consider the reference trajectory has a maximum length
+        end_pos = min(self._pos + n_timesteps, self._trajec_len-1)
+        qvels_x = self._qvel_full[PELVIS_TX, self._pos: end_pos]
+        # NOTE: y direction in the simulation corresponds to z direction in the mocaps
+        qvels_y = self._qvel_full[PELVIS_TZ, self._pos: end_pos]
+        # get the mean velocitities
+        mean_x_vel = np.mean(qvels_x)
+        mean_y_vel = np.mean(qvels_y)
+        if debug:
+            try:
+                self.des_vels_x += [mean_x_vel]
+                self.des_vels_y += [mean_y_vel]
+                # calculate the walker position by integrating the velocity vector
+                self.xpos += mean_x_vel * 1/self._control_freq
+                self.ypos += mean_y_vel * 1/self._control_freq
+                self.xposs += [self.xpos]
+                self.yposs += [self.ypos]
+            except:
+                self.des_vels_x = [mean_x_vel]
+                self.des_vels_y = [mean_y_vel]
+                self.xpos, self.ypos = 0, 0
+                self.xposs = [self.xpos]
+                self.yposs = [self.ypos]
+
+            if len(self.des_vels_x) > 1000:
+                from matplotlib import pyplot as plt
+                fig, subs = plt.subplots(1,4)
+                subs[0].plot(self.des_vels_x)
+                subs[1].plot(self.des_vels_y)
+                subs[2].plot(self.des_vels_x, self.des_vels_y)
+                subs[3].plot(self.xposs, self.yposs)
+                for i in range(3):
+                    subs[i].set_title('Desired Velocity\nin {} direction'.format(['X', 'Y', 'X and Y'][i]))
+                subs[3].set_title('Walkers position\n(from mean des_vel)')
+                plt.show()
+                exit(33)
+        return [mean_x_vel, mean_y_vel]

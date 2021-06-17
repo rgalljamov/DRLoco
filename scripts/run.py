@@ -39,10 +39,11 @@ if cfg.env_out_torque:
 else:
     cfg.env_id = cfg.env_ids[2]
 
-SPEED_CONTROL = True
+SPEED_CONTROL = False
 speeds = [0.5, 1, 1.25, 1.25]
 duration_secs = 8
 
+PLAYBACK_TRAJECS = True
 
 # which model would you like to run
 FROM_PATH = False
@@ -67,9 +68,10 @@ else:
     env = gym.make(env_id)
     env = Monitor(env)
     vec_env = env
-    obs = vec_env.reset()
-    env.activate_evaluation()
-    env.playback_ref_trajectories(2000)
+    if PLAYBACK_TRAJECS:
+        obs = vec_env.reset()
+        env.activate_evaluation()
+        env.playback_ref_trajectories(2000)
 
 if not isinstance(env, Monitor):
     # VecNormalize wrapped DummyVecEnv
@@ -101,7 +103,7 @@ for i in range(10000):
             obs, reward, done, _ = env.step(des_qpos)
 
     # only stop episode when agent has fallen
-    done = env.data.qpos[env.env._get_COM_indices()[-1]] < 0.5
+    done = False and env.data.qpos[env.env._get_COM_indices()[-1]] < 0.5
 
     if SPEED_CONTROL:
         des_speeds.append(env.desired_walking_speed)

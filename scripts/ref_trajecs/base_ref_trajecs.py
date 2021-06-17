@@ -46,14 +46,14 @@ class BaseReferenceTrajectories:
         Returns the joint positions of the considered robot model
         at the current timestep/(time)position.
         """
-        return self._qpos_full[self._qpos_indices, int(self._pos)]
+        return self._qpos_full[self._qpos_indices, self._pos]
 
     def get_qvel(self):
         """
         Returns the joint velocities of the considered robot model
         at the current timestep/(time)position.
         """
-        return self._qvel_full[self._qvel_indices, int(self._pos)]
+        return self._qvel_full[self._qvel_indices, self._pos]
 
     def get_reference_trajectories(self):
         """
@@ -90,7 +90,7 @@ class BaseReferenceTrajectories:
             f'Please check your control frequency and the sample frequency of the reference data!' \
             f'The sampling frequency of the reference data should be equal to ' \
             f'or an integer multiple of the control frequency.'
-        self._increment = increment
+        self._increment = int(increment)
 
     def next(self):
         """

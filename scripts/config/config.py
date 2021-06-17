@@ -14,9 +14,10 @@ MAX_EPISODE_STEPS = 3000
 # configure Weights & Biases
 WB_PROJECT_NAME = 'debug_loco3d'
 # todo: definitely also try increasing the velocity reward weight
-WB_RUN_NAME = f'8M rew_scale10'
-WB_RUN_DESCRIPTION = 'Scaling the reward by 100. ' \
-                     'Fixed a lot of issues in monitoring.' \
+WB_RUN_NAME = f'vel05 + rew_scale10'
+WB_RUN_DESCRIPTION = 'Calculating desired velocity from 0.5 seconds of future mocaps. ' \
+                     'Scaling the reward by 100. ' \
+                     'Fixed a lot of issues in monitoring. ' \
                      'Evaluate the model by letting it walk straight. ' \
                      'This way, we can retain all our previous evaluation metrics. ' \
                      'Starting training of the 2seg upper body model ' \

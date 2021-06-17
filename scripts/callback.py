@@ -11,10 +11,10 @@ from scripts.config.config import CTRL_FREQ
 
 # define intervals/criteria for saving the model
 # save everytime the agent achieved an additional 10% of the max possible return
-MAX_RETURN = cfg.ep_dur_max * 1
+MAX_RETURN = cfg.ep_dur_max * 1 * cfg.rew_scale
 EP_RETURN_INCREMENT = 0.1 * MAX_RETURN
 # 10% of max possible reward
-MEAN_REW_INCREMENT = 0.1
+MEAN_REW_INCREMENT = 0.1 * cfg.rew_scale
 
 # define evaluation interval
 EVAL_MORE_FREQUENT_THRES = 3.2e6
