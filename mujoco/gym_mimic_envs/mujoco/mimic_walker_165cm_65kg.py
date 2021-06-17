@@ -44,7 +44,8 @@ class MimicWalker165cm65kgEnv(MimicEnv):
 
     def get_joint_indices_for_phase_estimation(self):
         # return both hip joint indices in the saggital plane
-        return [9, 14]
+        # and both knee joint indices in the saggital plane
+        return [9,12,14,17]
 
     def _get_not_actuated_joint_indices(self):
         return self._get_COM_indices() + [3,4,5]

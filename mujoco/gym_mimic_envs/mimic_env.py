@@ -322,7 +322,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             plt.show()
 
 
-    def estimate_phase_vars_from_joint_phase_plots(self, qpos, qvel, debug=False):
+    def estimate_phase_vars_from_joint_phase_plots(self, qpos, qvel, debug=True):
         """
         For a detailed description, please see the doc string of the
         function get_joint_indices_for_phase_estimation().
@@ -333,41 +333,64 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         phases = []
         joint_indices = self.get_joint_indices_for_phase_estimation()
 
+        # in debugging mode, use the qpos and qvel info from the ref trajecs
+        if debug:
+            qpos, qvel = self.refs.get_qpos(), self.refs.get_qvel()
+            # check all joints
+            # joint_indices = range(len(qpos))
+
         for joint_index in joint_indices:
             pos = qpos[joint_index]
             vel = qvel[joint_index]
             phase_angle = np.arctan2(vel, pos)
             # normalize the phase angle to the range [-1, 1]
             phases += [phase_angle / np.pi]
+            # also add the vector length as a phase information
+            vec_norm = np.linalg.norm([pos, vel])
+            # normalize vec_norm to about [0, 1]
+            # todo: normalize to [-1, 1] by running mean and std
+            vec_norm_normed = vec_norm / 5
+            phases += [vec_norm_normed]
 
-        if debug:
-            # collect the hip pos and vel for the phase plot
-            try:
-                self.hip_pos.append(pos)
-                self.hip_vel.append(vel)
-                self.phase_angles.append(phase_angle/np.pi)
-            except:
-                self.hip_pos = [] + [pos]
-                self.hip_vel = [] + [vel]
-                self.phase_angles = [] + [phase_angle/np.pi]
+            if debug:
+                # collect the hip pos and vel for the phase plot
+                try:self.phase_poss is None
+                except:
+                    self.phase_poss = {key: [] for key in joint_indices}
+                    self.phase_vels = {key: [] for key in joint_indices}
+                    self.phase_angles = {key: [] for key in joint_indices}
+                    self.vec_norms = {key: [] for key in joint_indices}
 
-            if len(self.hip_pos) >= 200:
-                from matplotlib import pyplot as plt
-                from scripts.common.utils import smooth_exponential as smooth
-                fig, subs = plt.subplots(1, 2)
+                self.phase_poss[joint_index].append(pos)
+                self.phase_vels[joint_index].append(vel)
+                self.phase_angles[joint_index].append(phase_angle/np.pi)
+                self.vec_norms[joint_index].append(vec_norm)
 
-                subs[0].plot(smooth(self.hip_pos, alpha=0.95), smooth(self.hip_vel, alpha=0.95))
-                subs[0].set_title('Hip Joint Phase Plot')
-                subs[0].set_xlabel('Angle [rad]')
-                subs[0].set_ylabel('Angular Velocity [rad/s]')
 
-                subs[1].plot(self.phase_angles)
-                subs[1].set_title('Hip Joint Phase Plot Angle')
-                subs[1].set_xlabel('Timesteps [1/200s]')
-                subs[0].set_ylabel('Phase Angle [rad]')
+                if len(self.phase_poss[joint_index]) >= 500:
+                    from matplotlib import pyplot as plt
+                    from scripts.common.utils import smooth_exponential as smooth
+                    fig, subs = plt.subplots(1, 3)
 
-                plt.show()
-                exit(33)
+                    plt.suptitle(f'Joint: {self.refs.get_kinematic_label_at_pos(joint_index)}',
+                                 fontsize=16)
+                    subs[0].plot(smooth(self.phase_poss[joint_index], alpha=0.95),
+                                 smooth(self.phase_vels[joint_index], alpha=0.95))
+                    subs[0].set_title('Phase Plot')
+                    subs[0].set_xlabel('Angle [rad]')
+                    subs[0].set_ylabel('Angular Velocity [rad/s]')
+
+                    subs[1].plot(self.phase_angles[joint_index])
+                    subs[1].set_title('Phase Vector Angle')
+                    subs[1].set_xlabel('Timesteps [1/200s]')
+                    subs[1].set_ylabel('Phase Angle [rad]')
+
+                    subs[2].plot(self.vec_norms[joint_index])
+                    subs[2].set_title('Phase Vector Norm')
+                    subs[1].set_xlabel('Timesteps [1/200s]')
+                    plt.show()
+
+                    if joint_index == joint_indices[-1]: exit(33)
 
         # scale the phase angle to be in range [-1,1]
         return phases

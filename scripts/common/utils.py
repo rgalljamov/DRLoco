@@ -36,12 +36,12 @@ def import_pyplot():
 
 plt = import_pyplot()
 
-PLOT_FONT_SIZE = 16
-PLOT_TICKS_SIZE = 12
+PLOT_FONT_SIZE = 24
+PLOT_TICKS_SIZE = 16
 PLOT_LINE_WIDTH = 2
 
-def config_pyplot(fig_size=0.25, font_size=PLOT_FONT_SIZE, tick_size=PLOT_TICKS_SIZE,
-                  legend_fontsize=PLOT_TICKS_SIZE+4):
+def config_pyplot(fig_size=0.25, font_size_delta=0, tick_size_delta=0,
+                  legend_fontsize_delta=0):
     """ set desired plotting settings and returns a pyplot object
      @ return: pyplot object with seaborn style and configured rcParams"""
 
@@ -50,7 +50,7 @@ def config_pyplot(fig_size=0.25, font_size=PLOT_FONT_SIZE, tick_size=PLOT_TICKS_
     # sns.set_style("ticks")
     sns.set_style("whitegrid", {'axes.edgecolor': '#ffffff00'})
 
-    change_plot_properties(font_size, legend_fontsize, tick_size)
+    change_plot_properties(font_size_delta, tick_size_delta, legend_fontsize_delta)
 
     # configure saving format and directory
     PLOT_FIGURE_SAVE_FORMAT = 'png' # 'pdf' #'eps'
@@ -71,12 +71,12 @@ def config_pyplot(fig_size=0.25, font_size=PLOT_FONT_SIZE, tick_size=PLOT_TICKS_
     return plt
 
 
-def change_plot_properties(font_size=0, tick_size=0,
-                           legend_fontsize=0, line_width=0, show_grid=True):
+def change_plot_properties(font_size_delta=0, tick_size_delta=0,
+                           legend_fontsize_delta=0, line_width=0, show_grid=True):
 
-    font_size = PLOT_FONT_SIZE + font_size
-    tick_size = PLOT_TICKS_SIZE + tick_size
-    legend_fontsize = PLOT_TICKS_SIZE + 4 + legend_fontsize
+    font_size = PLOT_FONT_SIZE + font_size_delta
+    tick_size = PLOT_TICKS_SIZE + tick_size_delta
+    legend_fontsize = PLOT_TICKS_SIZE + 4 + legend_fontsize_delta
     line_width = PLOT_LINE_WIDTH + line_width
     show_grid = True and show_grid
 

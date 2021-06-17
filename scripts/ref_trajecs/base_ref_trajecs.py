@@ -117,6 +117,8 @@ class BaseReferenceTrajectories:
             self._qpos_full[index, :] *= scalar
             self._qvel_full[index, :] *= scalar
 
+    def get_kinematic_label_at_pos(self, pos):
+        return self._qlabels[self._qpos_indices][pos]
 
     def get_kinematics_labels(self):
         return self._qlabels

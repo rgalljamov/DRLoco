@@ -39,8 +39,7 @@ class Monitor(gym.Wrapper):
 
         self.setup_containers()
 
-        self.plt = config_pyplot(fig_size=True, font_size=12,
-                                 tick_size=12, legend_fontsize=16)
+        self.plt = config_pyplot(fig_size=True)
 
 
     def setup_containers(self):

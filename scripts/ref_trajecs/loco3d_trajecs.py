@@ -34,7 +34,8 @@ class Loco3dReferenceTrajectories(BaseReferenceTrajectories):
         data = spio.loadmat(dir_path + file_path, squeeze_me=True)
 
         # labels of the individual dimensions/rows in the mocap data matrix
-        kin_labels = data['rowNameIK']
+        # todo: angles and ang_vels are returned, but qlabels are set in the function
+        self._qlabels = data['rowNameIK']
         angles = data['angJoi']
         ang_vels = data['angDJoi']
         return angles, ang_vels
