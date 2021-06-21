@@ -342,7 +342,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         for joint_index in joint_indices:
             pos = qpos[joint_index]
             vel = qvel[joint_index]
-            phase_angle = np.arctan2(vel, pos)
+            phase_angle = np.arctan2(vel, -pos)
             # normalize the phase angle to the range [-1, 1]
             phases += [phase_angle / np.pi]
             # also add the vector length as a phase information
