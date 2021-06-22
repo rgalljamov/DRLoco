@@ -4,23 +4,22 @@ from scripts.common.utils import get_absolute_project_path
 
 
 class BaseReferenceTrajectories:
-    def __init__(self, rel_data_path, sample_freq, control_freq, 
-                 qpos_indices, qvel_indices, data_labels=[], adaptations={}):
-        """
-        Base class for providing reference trajectories to the RL environment during training
-        within the DeepMimic Framework (Peng et. al, 2018).
+    """
+    Base class for providing reference trajectories to the RL environment during training
+    within the DeepMimic Framework (Peng et. al, 2018).
 
-        :param rel_data_path:   relative path to the .npz file containing the reference trajectories
-        :param sample_freq:     frequency the reference trajectory (e.g. mocap) data was collected with
-        :param control_freq:    frequency the policy is sampled at.
-        :param qpos_indices:    indices describing where in the data matrix to find the joint positions
-        :param qvel_indices:    indices describing where in the data matrix to find the joint velocities
-        :param data_labels:     names of the data in each row (used for plotting, monitoring and debugging)
-        :param adaptations:     dict mapping indices to float values describing scalar multiplications
-                                of the trajectories at the specified index. Often required to
-                                adapt the reference trajectories to a walker environment.
-        """
-        self._data_path = get_absolute_project_path() + rel_data_path
+    :param sample_freq:     frequency the reference trajectory (e.g. mocap) data was collected with
+    :param control_freq:    frequency the policy is sampled at.
+    :param qpos_indices:    indices describing where in the data matrix to find the joint positions
+    :param qvel_indices:    indices describing where in the data matrix to find the joint velocities
+    :param data_labels:     names of the data in each row (used for plotting, monitoring and debugging)
+    :param adaptations:     dict mapping indices to float values describing scalar multiplications
+                            of the trajectories at the specified index. Often required to
+                            adapt the reference trajectories to a walker environment.
+    """
+    def __init__(self, sample_freq, control_freq,
+                 qpos_indices, qvel_indices, data_labels=[], adaptations={}):
+
         self._sample_freq = sample_freq
         self._control_freq = control_freq
         self._qpos_indices = qpos_indices
