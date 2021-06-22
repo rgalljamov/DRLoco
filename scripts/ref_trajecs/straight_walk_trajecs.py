@@ -12,7 +12,8 @@ import scipy.io as spio
 from scripts.ref_trajecs.base_ref_trajecs import BaseReferenceTrajectories
 from scripts.config.hypers import is_mod, MOD_REFS_RAMP, MOD_SYMMETRIC_WALK, \
     SKIP_N_STEPS, STEPS_PER_VEL, EVAL_N_TIMES, CTRL_FREQ
-from scripts.common.utils import log, is_remote, config_pyplot, smooth_exponential
+from scripts.common.utils import log, is_remote, config_pyplot, smooth_exponential, \
+    get_absolute_project_path
 
 
 # relative paths to trajectories
@@ -111,8 +112,7 @@ negate_indices = [COM_POSY, TRUNK_ROT_X, TRUNK_ROT_Z, HIP_FRONT_ANG_R, HIP_FRONT
 
 class StraightWalkingTrajectories(BaseReferenceTrajectories):
     def __init__(self, qpos_indices, q_vel_indices, adaptations={}):
-        super(StraightWalkingTrajectories, self).__init__(
-            PATH_REF_TRAJECS, 400, 200, qpos_indices, q_vel_indices)
+        super(StraightWalkingTrajectories, self).__init__(400, 200, qpos_indices, q_vel_indices)
 
         # setup pyplot
         self.plt = config_pyplot(fig_size=True, font_size=12,
@@ -322,7 +322,8 @@ class StraightWalkingTrajectories(BaseReferenceTrajectories):
         """ In this class, the data is split into individual steps.
             Shape of data is: (n_steps, data_dims, traj_len). """
         # load matlab data, containing trajectories of 250 steps
-        data = spio.loadmat(self._data_path, squeeze_me=True)
+        path = get_absolute_project_path() + PATH_REF_TRAJECS
+        data = spio.loadmat(path, squeeze_me=True)
         # 250 steps, shape (250,1), where 1 is an array with kinematic data
         data = data['Data']
         # flatten the array to have dim (steps,)

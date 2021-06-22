@@ -9,17 +9,18 @@ from scripts.config import config as cfgl
 from scripts.config import hypers as cfg
 from scripts.common.utils import log, is_remote, \
     exponential_running_smoothing as smooth, get_torque_ranges
-from scripts.ref_trajecs.straight_walk_trajecs import StraightWalkingTrajectories as RefTrajecs
+from scripts.ref_trajecs.base_ref_trajecs import BaseReferenceTrajectories as RefTrajecs
 
 # pause sim on startup to be able to change rendering speed, camera perspective etc.
 pause_mujoco_viewer_on_start = True and not is_remote()
 
 class MimicEnv(MujocoEnv, gym.utils.EzPickle):
-    """ The base class to derive from to train an environment using the DeepMimic Approach."""
     def __init__(self: MujocoEnv, xml_path, ref_trajecs:RefTrajecs):
-        '''@param: self: gym environment class extending the MimicEnv class
-           @param: xml_path: path to the mujoco environment XML file
-           @param: ref_trajecs: Instance of the ReferenceTrajectory'''
+        """ The base class to derive from to train an environment using the DeepMimic Approach.
+            :param self: gym environment class extending the MimicEnv class
+            :param: xml_path: path to the mujoco environment XML file
+            :param: ref_trajecs: Instance of the ReferenceTrajectory
+        """
 
         self.refs = ref_trajecs
         # set simulation and control frequency
@@ -62,13 +63,21 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
     def step(self, action):
         # when rendering: pause sim on startup to change rendering speed, camera perspective etc.
+        # todo: make it a constant in the config file or a constant in the mimicEnv here.
         global pause_mujoco_viewer_on_start
         if pause_mujoco_viewer_on_start:
             self._get_viewer('human')._paused = True
             pause_mujoco_viewer_on_start = False
 
+        # todo: the base class should have a method
+        #  called modify_actions or preprocess actions instead of this?
+        #  otherwise document, that we're rescaling actions
+        #  and add action ranges into the environment (get_action_ranges())
         action = self.rescale_actions(action)
 
+        # todo: remove that after you've made sure, the simple env works as before
+        # todo: Add a static method to each environment
+        #  that allows to mirror the experiences (s,a,r,s')
         # when we're mirroring the policy (phase based mirroring), mirror the action
         if cfg.is_mod(cfg.MOD_MIRR_POLICY) and self.refs.is_step_left():
             action = self.mirror_action(action)
@@ -84,12 +93,39 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
         # workaround due to MujocoEnv calling step() during __init__()
         if not self.finished_init:
-            return obs, 3.33, False, {}
+            return None, 3.33, False, {}
 
         # increment episode duration
         self.ep_dur += 1
 
-        # get the moved distance by integrating the velocity vector
+        # update the so far traveled distance
+        self.update_walked_distance()
+
+        # get imitation reward
+        reward = self.get_imitation_reward()
+
+        # todo: add a function is_done() that can be overwritten
+        # check if we entered a terminal state
+        com_z_pos = self.sim.data.qpos[self._get_COM_indices()[-1]]
+        # was max episode duration or max walking distance reached?
+        # todo: do we really need a maximum walked distance? It is already limited by the ep_dur!
+        max_eplen_reached = self.ep_dur >= cfg.ep_dur_max or \
+                            self.walked_distance > cfg.max_distance + 0.1
+        # terminate the episode?
+        # todo: should be is_done() or self.ep_dur >= cfg.ep_dur_max
+        done = com_z_pos < 0.5 or max_eplen_reached
+
+        # todo: do we need this necessarily in the simple straight walking case?
+        # terminate_early, _, _, _ = self.do_terminate_early()
+        reward = self.get_reward()
+        # todo: think to shift the alive bonus to get_reward()
+        if not done: reward += cfg.alive_bonus
+
+        return obs, reward, done, {}
+
+
+    def update_walked_distance(self):
+        """Get the so far traveled distance by integrating the velocity vector."""
         vel_vec = self.data.qvel[:2]
         # avoid high velocities due to numerical issues in the simulation
         # very roughly assuming maximum speed of about 20 km/h
@@ -98,32 +134,14 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         vel = np.linalg.norm(vel_vec)
         self.walked_distance += vel * 1 / self.control_freq
 
-        # get imitation reward
-        reward = self.get_imitation_reward()
 
-        # check if we entered a terminal state
-        com_z_pos = self.sim.data.qpos[self._get_COM_indices()[-1]]
-        # was max episode duration or max walking distance reached?
-        max_eplen_reached = self.ep_dur >= cfg.ep_dur_max or \
-                            self.walked_distance > cfg.max_distance + 0.1
-        # terminate the episode?
-        done = com_z_pos < 0.5 or max_eplen_reached
-
-        # todo: do we need this necessarily in the simple straight walking case?
-        # terminate_early, _, _, _ = self.do_terminate_early()
-        if done:
-            # if episode finished, recalculate the reward
-            # to punish falling hard and rewarding reaching episode's end a lot
-            reward = self.get_ET_reward(max_eplen_reached)
+    def get_reward(self, done: bool):
+        """ Returns the reward of the current state.
+            :param done: is True, when episode finishes and else False"""
+        return self._get_ET_reward() if done else self.get_imitation_reward()
 
 
-        # add alive bonus else
-        else: reward += cfg.alive_bonus
-
-        return obs, reward, done, {}
-
-
-    def get_ET_reward(self, max_eplen_reached):
+    def _get_ET_reward(self):
         """ Punish falling hard and reward reaching episode's end a lot. """
 
         # calculate a running mean of the ep_return
@@ -132,6 +150,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
         # reward reaching the end of the episode without falling
         # reward = expected cumulative future reward
+        max_eplen_reached = self.ep_dur >= cfg.ep_dur_max
         if max_eplen_reached:
             # estimate future cumulative reward expecting getting the mean reward per step
             mean_step_rew = self.mean_epret_smoothed / self.ep_dur
