@@ -2,7 +2,6 @@ import gym, os, wandb
 import numpy as np
 import seaborn as sns
 from os import path, getcwd
-from scripts.config.config import HAS_LUMBAR_JOINTS
 
 def is_remote():
     # automatically detect running PC
@@ -345,34 +344,3 @@ def resetExponentialRunningSmoothing(label, value=0):
     global _exp_weighted_averages
     _exp_weighted_averages[label] = value
     return True
-
-
-def get_torque_ranges(hip_sag, hip_front, knee, ankle):
-    torque_ranges = np.ones((8,2))
-    peaks = np.array([hip_sag, hip_front, knee, ankle] * 2)
-    torque_ranges[:,0] = -peaks
-    torque_ranges[:,1] = peaks
-    # print('Torque ranges (hip_sag, hip_front, knee, ankle): ', torque_ranges)
-    return torque_ranges
-
-
-def get_torque_ranges(hip_sag, hip_front, hip_trav, knee, ankle,
-                      lumbar_extension=-1, lumbar_bending=-1, lumbar_rotation=-1):
-    """Returns the joint torque ranges from the specified peak torques. """
-
-    # some models do not have lumbar joints
-    if HAS_LUMBAR_JOINTS:
-        # either all or none of the lumbar joints should be set
-        assert lumbar_bending > 0 and lumbar_rotation > 0 and lumbar_extension > 0, \
-            'Have you set the lumbar joint peaks correctly? ' \
-            'If your robot model does not have a lumbar joint, ' \
-            'set the corresponding flag in config.py to False.'
-
-    torque_ranges = np.ones((13 if HAS_LUMBAR_JOINTS else 10, 2))
-    peaks = [hip_sag, hip_front, hip_trav, knee, ankle] * 2
-    if HAS_LUMBAR_JOINTS: peaks = [lumbar_extension, lumbar_bending, lumbar_rotation] + peaks
-    peaks = np.array(peaks)
-    torque_ranges[:,0] = -peaks
-    torque_ranges[:,1] = peaks
-
-    return torque_ranges

@@ -66,6 +66,10 @@ class MimicWalker3dEnv(MimicEnv):
         """Maximum joint velocities approximated from the reference data."""
         return np.array([5, 1, 10, 10, 5, 1, 10, 10])
 
+    def get_joint_indices_for_phase_estimation(self):
+        # return both knee and hip joints
+        return [6, 8, 10, 12]
+
     def has_ground_contact(self):
         has_contact = [False, False]
         for contact in self.data.contact[:self.data.ncon]:

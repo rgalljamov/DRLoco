@@ -112,11 +112,11 @@ negate_indices = [COM_POSY, TRUNK_ROT_X, TRUNK_ROT_Z, HIP_FRONT_ANG_R, HIP_FRONT
 
 class StraightWalkingTrajectories(BaseReferenceTrajectories):
     def __init__(self, qpos_indices, q_vel_indices, adaptations={}):
-        super(StraightWalkingTrajectories, self).__init__(400, 200, qpos_indices, q_vel_indices)
+        super(StraightWalkingTrajectories, self).__init__(
+            400, 200, qpos_indices, q_vel_indices, data_labels=labels)
 
         # setup pyplot
-        self.plt = config_pyplot(fig_size=True, font_size=12,
-                                 tick_size=12, legend_fontsize=16)
+        self.plt = config_pyplot(fig_size=True)
         self.reset()
         # calculate walking speeds for each step
         self.step_velocities = self._calculate_walking_speed()
@@ -163,9 +163,10 @@ class StraightWalkingTrajectories(BaseReferenceTrajectories):
         dif = self._pos - self._trajec_len + 1
         if dif > 0:
             # choose the next step
-            self._data = self._get_next_step()
+            self._qpos_full = self._get_next_step()
+            self._qvel_full = self._qpos_full
             # update the trajec length as it is different for each step
-            self._trajec_len = self._data.shape[1]
+            self._trajec_len = self._qpos_full.shape[1]
             # make sure to do the required increment
             self._pos = dif
 
@@ -173,6 +174,9 @@ class StraightWalkingTrajectories(BaseReferenceTrajectories):
         """ Set all indices and counters to zero."""
         self._i_step = 0
         self._step = self.data[0]
+        self._qpos_full = self._step
+        self._qvel_full = self._step
+        self._trajec_len = self._step.shape[1]
         self._pos = 0
         self.dist = 0
         self._ep_dur = 0
@@ -330,8 +334,11 @@ class StraightWalkingTrajectories(BaseReferenceTrajectories):
         data = data.flatten()
         # contains the data of all steps
         self.data = data
-        n_dims = len(self._qpos_indices)
-        return data[0][:n_dims, :], data[0][n_dims:, :]
+        # todo: check if that is an error of our base class
+        #  or the reason for that lies in the mocap data
+        # return all the data for both qpos and qvel.
+        # the correct data will be fetched by the corresponding indices.
+        return data[0], data[0]
 
     def _get_next_step(self):
         """
@@ -482,11 +489,23 @@ class StraightWalkingTrajectories(BaseReferenceTrajectories):
 
     def get_random_init_state(self):
         # which of the 250 steps are we looking at
-        self._i_step = random.randint(0, len(self.data) - 1, )
-        return self.data[self._i_step]
+        self._i_step = random.randint(0, len(self.data) - 1)
+        self._step = self.data[self._i_step]
+        self._qpos_full = self._step
+        self._qvel_full = self._step
+        self._trajec_len = self._step.shape[1]
+        self._pos = random.randint(0, self._trajec_len - 1)
+        init_kinematics = self.get_qpos(), self.get_qvel()
+        return init_kinematics
 
     def get_deterministic_init_state(self):
         return self._get_deterministic_init_state(i_step=0)
+
+    def get_desired_walking_velocity_vector(self, do_eval, debug=False):
+        return [self.get_step_velocity()]
+
+    def _get_COM_Z_pos_index(self):
+        return COM_POSZ
 
 
 

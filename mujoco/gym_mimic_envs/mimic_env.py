@@ -8,7 +8,7 @@ from gym.envs.mujoco.mujoco_env import MujocoEnv
 from scripts.config import config as cfgl
 from scripts.config import hypers as cfg
 from scripts.common.utils import log, is_remote, \
-    exponential_running_smoothing as smooth, get_torque_ranges
+    exponential_running_smoothing as smooth
 from scripts.ref_trajecs.base_ref_trajecs import BaseReferenceTrajectories as RefTrajecs
 
 # pause sim on startup to be able to change rendering speed, camera perspective etc.
@@ -54,10 +54,8 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         gym.utils.EzPickle.__init__(self)
         # make sure simulation runs at the desired frequency
         self.model.opt.timestep = 1 / self._sim_freq
-        # The motor torque ranges should always be specified in the config file
-        # and overwrite the forcerange in the .MJCF file
-        self.model.actuator_forcerange[:, :] = get_torque_ranges(*cfgl.PEAK_LEG_JOINT_TORQUES,
-                                                                 *cfgl.PEAK_LUMBAR_JOINT_TORQUES)
+        # workaround for MujocoEnv calling step()
+        # during initialization without calling reset() before
         self.finished_init = True
 
 
@@ -162,31 +160,29 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         return reward
 
 
-    def rescale_actions(self, a):
-        """Policy samples actions from normal Gaussian distribution around 0 with init std of 0.5.
-           In this method, we rescale the actions to the actual action ranges."""
-        # policy outputs (normalized) joint torques
-        if cfg.env_out_torque:
-            # clip the actions to the range of [-1,1]
-            a = np.clip(a, -1, 1)
-            # scale the actions with joint peak torques
-            # *2: peak torques are the same for both sides
-            peak_joint_torques = cfgl.PEAK_LEG_JOINT_TORQUES * 2
-            if cfgl.HAS_LUMBAR_JOINTS:
-                peak_joint_torques = cfgl.PEAK_LUMBAR_JOINT_TORQUES + peak_joint_torques
-            a *= peak_joint_torques
+    def rescale_actions(self, action):
+        """
+        Our policy samples actions from a Gaussian distribution
+        centered around 0 with an initial standard deviation of 0.5.
+        In addition, we clip the actions to the interval [-1,1].
+        Therefore, the actions have to be unnormalized, i.e
+        rescaled to the actual joint torque ranges specified in the MJCF file.
 
-        # policy outputs target angles for PD position controllers
-        else:
-            if cfg.is_mod(cfg.MOD_PI_OUT_DELTAS):
-                # qpos of actuated joints
-                qpos_act_before_step = self.get_qpos(True, True)
-                # unnormalize the normalized deltas
-                a *= self.get_max_qpos_deltas()
-                # add the deltas to current position
-                a = qpos_act_before_step + a
-        return a
+        :param action: action sampled from the policy
+        """
+        # clip the actions to the range of [-1,1]
+        action = np.clip(action, -1, 1)
+        # get joint peak positive (high) and negative torques (low)
+        high = self.action_space.high
+        low = self.action_space.low
+        # scale the actions with joint peak torques
+        # IMPORTANT: an action of 0 should correspond to 0 torque,
+        #   positive actions to positive torques and negative actions to negative torques
+        scaled_action = []
+        for i, a in enumerate(action):
+            scaled_action += [a * high[i] if a > 0 else np.abs(a) * low[i]]
 
+        return np.array(scaled_action)
 
 
     def get_sim_freq_and_frameskip(self):
@@ -256,16 +252,6 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         high = ctrl_ranges[:, 1]
         return low, high
 
-
-    def get_max_qpos_deltas(self):
-        """Returns the scalars needed to rescale the normalized actions from the agent."""
-        # get max allowed deviations in actuated joints
-        max_vels = self._get_max_actuator_velocities()
-        # double max deltas for better perturbation recovery. To keep balance,
-        # the agent might require to output angles that are not reachable and saturate the motors.
-        SCALE_MAX_VELS = 2
-        max_qpos_deltas = SCALE_MAX_VELS * max_vels / self.control_freq
-        return max_qpos_deltas
 
     def playback_ref_trajectories(self, timesteps=2000):
         self._PLAYBACK_REF_TRAJECS = True
@@ -549,7 +535,8 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         # self.dynamics_randomization()
 
         # get desired qpos and qvel from the refs (also include the trunk COM positions and vels)
-        qpos, qvel = self.get_init_state(not self.is_evaluation_on() and not self._FOLLOW_DESIRED_SPEED_PROFILE)
+        qpos, qvel = self.get_init_state(not self.is_evaluation_on()
+                                         and not self._FOLLOW_DESIRED_SPEED_PROFILE)
         # apply the refs kinematics to the simulation
         self.set_state(qpos, qvel)
 
