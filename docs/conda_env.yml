@@ -15,7 +15,7 @@ dependencies:
     - pandas
     - numpy
     - matplotlib
-    - searborn
+    - seaborn
     - setuptools==52.0.0
     - tensorboard==2.4.1
     - tensorboard-plugin-wit==1.8.0
