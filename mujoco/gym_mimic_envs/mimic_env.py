@@ -93,7 +93,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
         # workaround due to MujocoEnv calling step() during __init__()
         if not self.finished_init:
-            return None, 3.33, False, {}
+            return obs, 3.33, False, {}
 
         # increment episode duration
         self.ep_dur += 1
@@ -117,9 +117,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
         # todo: do we need this necessarily in the simple straight walking case?
         # terminate_early, _, _, _ = self.do_terminate_early()
-        reward = self.get_reward()
-        # todo: think to shift the alive bonus to get_reward()
-        if not done: reward += cfg.alive_bonus
+        reward = self.get_reward(done)
 
         return obs, reward, done, {}
 
@@ -138,7 +136,8 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
     def get_reward(self, done: bool):
         """ Returns the reward of the current state.
             :param done: is True, when episode finishes and else False"""
-        return self._get_ET_reward() if done else self.get_imitation_reward()
+        return self._get_ET_reward() if done \
+            else self.get_imitation_reward() + cfg.alive_bonus
 
 
     def _get_ET_reward(self):

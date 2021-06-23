@@ -32,7 +32,8 @@ class BaseReferenceTrajectories:
         # adapt reference trajectories to the considered walker model
         self.adapt_trajectories(adaptations)
         # check if all data rows have a label
-        assert len(data_labels) == 0 or len(data_labels) == self._n_joints, \
+        assert len(data_labels) == 0 \
+               or len(data_labels) in [self._n_joints, len(self._qpos_indices)], \
             "Please provide a label for each row in the data matrix.\n" \
             f"You provided {len(data_labels)} labels for a matrix of shape {self._qpos_full.shape}.\n"
         # position on the reference trajectories

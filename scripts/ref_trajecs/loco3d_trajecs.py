@@ -22,7 +22,7 @@ ELBOW_FLEX_L, PRO_SUP_L, WRIST_FLEX_L, WRIST_DEV_L = range(33, 37)
 class Loco3dReferenceTrajectories(BaseReferenceTrajectories):
     def __init__(self, qpos_indices, qvel_indices, adaptations):
         rel_mocap_data_path = 'assets/mocaps/loco3d/loco3d_guoping.mat'
-        super(Loco3dReferenceTrajectories, self).__init__(rel_mocap_data_path, 500, 100,
+        super(Loco3dReferenceTrajectories, self).__init__(500, 100,
                                                           qpos_indices, qvel_indices,
                                                           adaptations=adaptations)
         self._pos = 1000
