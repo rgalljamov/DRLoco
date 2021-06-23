@@ -1,7 +1,7 @@
 .. _mimic_env:
 
 Mimic Environment
-***********
+**********************
 
 File Location: ``mujoco/gym_mimic_envs/mimic_env.py``
 
@@ -30,7 +30,7 @@ It's main purpose is to execute an action in the environment and return the curr
 
 
 Automodule TEST
--------------
+--------------------
 .. automodule:: gym_mimic_envs.mimic_env
 
 .. autoclass:: MimicEnv
