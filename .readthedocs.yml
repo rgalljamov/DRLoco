@@ -15,3 +15,9 @@ formats: all
 # Set requirements using conda env
 conda:
   environment: docs/conda_env.yml
+
+python:
+  version: 3.7
+  install:
+    - method: pip
+      path: mujoco
