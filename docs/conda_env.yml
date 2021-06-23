@@ -1,17 +1,36 @@
 
-name: root
+name: torch
 channels:
-  - pytorch
+  - conda-forge
   - defaults
 dependencies:
-  - cpuonly=1.0=0
   - pip=20.2
-  - python=3.6
+  - python=3.7
   - pytorch=1.5.0=py3.6_cpu_0
   - pip:
-    - gym>=0.17.2
+    - gym==0.18.0
+    - mujoco-py==2.0.2.13
+    - pillow==7.2.0
+    - scipy==1.6.3
     - cloudpickle
-    - opencv-python-headless
     - pandas
     - numpy
     - matplotlib
+    - searborn
+    - setuptools=52.0.0
+    - tensorboard=2.4.1
+    - tensorboard-plugin-wit=1.8.0
+    - wandb=0.10.30
+    - sphinx==4.0.2
+    - sphinx-autobuild==2021.3.14
+    - sphinx-rtd-theme==0.5.2
+    - sphinxcontrib-applehelp==1.0.2
+    - sphinxcontrib-devhelp==1.0.2
+    - sphinxcontrib-htmlhelp==2.0.0
+    - sphinxcontrib-jsmath==1.0.1
+    - sphinxcontrib-qthelp==1.0.3
+    - sphinxcontrib-serializinghtml==1.1.5
+    - stable-baselines3==1.0
+    - torch==1.8.1
+    - typing-extensions==3.10.0.0
+    - docutils==0.16
