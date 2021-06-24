@@ -20,7 +20,7 @@
       <camera name="track_pelvis" mode="trackcom" pos="0 -4 0" xyaxes="1 0 0 0 0 1"/>
       <joint name="pelvis_tx" armature="0" axis="1 0 0" damping="0" limited="false"  pos="0 0 0" stiffness="0" type="slide"/>
       <joint name="pelvis_tz" armature="0" axis="0 -1 0" damping="0" limited="false" pos="0 0 0" stiffness="0" type="slide"/>
-      <joint name="pelvis_ty" armature="0" axis="0 0 1" damping="0" limited="false" pos="0 0 0" ref="0" stiffness="0" type="slide"/>
+      <joint name="pelvis_ty" armature="0" axis="0 0 1" damping="0" limited="false" pos="0 0 0" ref="1.035" stiffness="0" type="slide"/>
       <joint name="pelvis_list" armature="0" axis="1 0 0" damping="0" limited="false" pos="0 0 0" stiffness="0" type="hinge"/>
       <joint name="pelvis_tilt" armature="0" axis="0 -1 0" damping="0" limited="false" pos="0 0 0" stiffness="0" type="hinge"/>
       <joint name="pelvis_rotation" armature="0" axis="0 0 1" damping="0" limited="false" pos="0 0 0" stiffness="0" type="hinge"/>

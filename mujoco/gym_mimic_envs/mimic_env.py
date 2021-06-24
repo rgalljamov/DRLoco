@@ -9,6 +9,7 @@ from scripts.config import hypers as cfg
 from scripts.common.utils import log, is_remote, \
     exponential_running_smoothing as smooth
 from scripts.ref_trajecs.base_ref_trajecs import BaseReferenceTrajectories as RefTrajecs
+from mujoco_py.builder import MujocoException
 
 # pause sim on startup to be able to change rendering speed, camera perspective etc.
 pause_mujoco_viewer_on_start = True and not is_remote()
@@ -80,8 +81,18 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             action = self.mirror_action(action)
 
         # execute simulation with desired action for multiple steps
-        self.do_simulation(action, self._frame_skip)
-        # self.render()
+        try:
+            self.do_simulation(action, self._frame_skip)
+            # self.render()
+        # If a MuJoCo Exception is raised, catch it and reset the environment
+        except MujocoException as mex:
+            log('MuJoCo Exception catched!',
+                [f'- Episode Duration: {self.ep_dur}',
+                 f'Exception: \n {mex}'])
+            obs = self.reset()
+            return obs, 0, True, {}
+
+
 
         # increment the current position on the reference trajectories
         self.refs.next()
@@ -101,7 +112,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
         # todo: add a function is_done() that can be overwritten
         # check if we entered a terminal state
-        com_z_pos = self.sim.data.qpos[self._get_COM_indices()[-1]]
+        com_z_pos = self.get_COM_Z_position()
         # was max episode duration or max walking distance reached?
         # todo: do we really need a maximum walked distance? It is already limited by the ep_dur!
         max_eplen_reached = self.ep_dur >= cfg.ep_dur_max or \
@@ -115,6 +126,9 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         reward = self.get_reward(done)
 
         return obs, reward, done, {}
+
+    def get_COM_Z_position(self):
+        return self.sim.data.qpos[self._get_COM_indices()[-1]]
 
     def update_walked_distance(self):
         """Get the so far traveled distance by integrating the velocity vector."""
@@ -400,8 +414,10 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         # phase = self.refs.get_phase_variable()
         phases = self.estimate_phase_vars_from_joint_phase_plots(qpos, qvel)
 
-        # remove COM x position as the action should be independent of it
-        qpos = qpos[1:]
+        # remove COM X and in the 3D case also COM Y position
+        # as the action should be independent of the walkers position in space
+        # WARNING: This only applies for a blind walker on a  flat ground!
+        qpos = qpos[len(self._get_COM_indices())-1:]
 
         obs = np.array([*phases, *self.desired_walking_speed, *qpos, *qvel])
 
@@ -715,15 +731,6 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             contact_force_norm = np.sqrt(np.sum(np.square(contact_forces)))
             print('norm contact_forces', np.round(contact_force_norm,2))
 
-
-    # ----------------------------
-    # Methods we override:
-    # ----------------------------
-
-    def close(self):
-        # calls MujocoEnv.close()
-        super().close()
-
     # ----------------------------
     # Methods to override:
     # ----------------------------
@@ -734,6 +741,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
         Returns a list of indices pointing at COM joint position/index
         in the considered robot model ([i_x, i_y, i_z]), e.g. [0,1,2].
+        In case of a model walking in 2D, return [i_x, i_z].
 
         Caution: Do not include trunk rotational joints here.
         """
