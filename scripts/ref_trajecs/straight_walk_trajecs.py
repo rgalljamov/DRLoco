@@ -10,8 +10,7 @@ import random
 import numpy as np
 import scipy.io as spio
 from scripts.ref_trajecs.base_ref_trajecs import BaseReferenceTrajectories
-from scripts.config.hypers import is_mod, MOD_REFS_RAMP, MOD_SYMMETRIC_WALK, \
-    SKIP_N_STEPS, STEPS_PER_VEL, EVAL_N_TIMES, CTRL_FREQ
+from scripts.config.hypers import is_mod, MOD_REFS_RAMP, EVAL_N_TIMES
 from scripts.common.utils import log, is_remote, config_pyplot, smooth_exponential, \
     get_absolute_project_path
 
@@ -111,7 +110,11 @@ negate_indices = [COM_POSY, TRUNK_ROT_X, TRUNK_ROT_Z, HIP_FRONT_ANG_R, HIP_FRONT
 
 
 class StraightWalkingTrajectories(BaseReferenceTrajectories):
-    def __init__(self, qpos_indices, q_vel_indices, adaptations={}):
+    def __init__(self, qpos_indices, q_vel_indices, adaptations={}, mirror_refs=False):
+        """
+            :param mirror_refs: if True, mirror the right step trajectories
+            and use them for the left steps to get perfectly symmetric walking.
+        """
         super(StraightWalkingTrajectories, self).__init__(
             400, 200, qpos_indices, q_vel_indices, data_labels=labels)
 
@@ -125,7 +128,7 @@ class StraightWalkingTrajectories(BaseReferenceTrajectories):
         # some steps are done with left, some with right foot
         self.left_step_indices = self._determine_left_steps_indices()
         # mirror right step and use it as left step
-        if is_mod(MOD_SYMMETRIC_WALK): self._symmetric_walk()
+        if mirror_refs: self._mirror_refs()
         # current step
         self._step = np.concatenate([self._qpos_full, self._qvel_full], axis=0)
         # distance walked so far (COM X Position)
@@ -137,7 +140,7 @@ class StraightWalkingTrajectories(BaseReferenceTrajectories):
         # during evaluation we want our agent to start from different positions
         self.n_deterministic_inits = 0
 
-    def _symmetric_walk(self):
+    def _mirror_refs(self):
         # print('Mirroring the mocap data to have symmetric walking!')
         right_step_indices = np.array(self.left_step_indices) - 1
         # replace left steps with right steps
@@ -339,23 +342,13 @@ class StraightWalkingTrajectories(BaseReferenceTrajectories):
         """
 
         # increase the step index, reset if last step was reached
-        if self._i_step >= len(self.data)-SKIP_N_STEPS-STEPS_PER_VEL:
+        if self._i_step >= len(self.data):
             self.has_reached_last_step = True
             # reset to the step with the correct foot
             self._i_step = 0 if self._i_step in self.left_step_indices else 1
         else:
-            # do multiple steps at the same velocity before skipping to a higher vel
-            if self.count_steps_same_vel < STEPS_PER_VEL:
-                self._i_step += 1
-                self.count_steps_same_vel += 1
-            else:
-                # skipping an odd number of steps should result in a step with
-                # the other leg/side, however after the step 137 with left foot
-                # the next step with left foot is 140
-                if self._i_step <= 137 and (self._i_step + SKIP_N_STEPS) > 137:
-                    self._i_step += 1
-                self._i_step += SKIP_N_STEPS
-                self.count_steps_same_vel = 1
+            self._i_step += 1
+            self.count_steps_same_vel += 1
 
         # update the so far traveled distance
         self.dist = self._step[COM_POSX, -1]

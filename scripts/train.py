@@ -56,10 +56,6 @@ def init_wandb(model):
         "clip1": cfg.clip_end,
         }
 
-    if cfg.is_mod(cfg.MOD_REFS_RAMP):
-        params['skip_n_steps'] = cfg.SKIP_N_STEPS
-        params['steps_per_vel'] = cfg.STEPS_PER_VEL
-
     wandb.init(config=params, sync_tensorboard=True, name=cfgl.WB_RUN_NAME,
                project=cfgl.WB_PROJECT_NAME, notes=cfgl.WB_RUN_DESCRIPTION)
 

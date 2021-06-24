@@ -1,6 +1,7 @@
 # workaround to start scripts from cmd on any remote server
 import sys
 
+# TODO think we only need this, because the path is not added to python_path
 sys.path.append('/home/rustam/code/torch/')
 
 import numpy as np
@@ -8,6 +9,7 @@ import torch as th
 from scripts.common import utils
 from scripts.config import config as cfg
 
+# todo: move to train.py
 # make torch using the CPU instead of the GPU by default
 if cfg.USE_CPU:
     from os import environ
@@ -23,13 +25,10 @@ def is_mod(mod_str):
        e.g. is_mod(MOD_MIRR_POLICY) is true, when we mirror the policy. '''
     return mod_str in modification
 
-# todo: do we need it here?
-# get the absolute path of the current project
-abs_project_path = utils.get_absolute_project_path()
-
 # MODIFICATIONS of the PPO algorithm to achieve better sample efficiency
 
-# todo: choice of mocaps should be a modification
+# todo: choice of mocaps should NOT be a modification
+#  Create separate classes for both refs, possibly simply in the straight-walking-refs!
 MOD_REFS_CONST = 'refs_const'
 MOD_REFS_RAMP = 'refs_ramp'
 
@@ -37,18 +36,12 @@ MOD_REFS_RAMP = 'refs_ramp'
 # to change network topology etc. Used as default mode!
 MOD_CUSTOM_POLICY = 'cstm_pi'
 
+# todo: remove? Otherwise, just use as a boolean flag
 MOD_CLIPRANGE_SCHED = 'clip_sched'
 
-# use symmetrized mocap data for imitation reward
-MOD_SYMMETRIC_WALK = 'sym_walk'
-
+# todo: shift it to the straight walker env
 # learn policy for right step only, mirror states and actions for the left step
 MOD_MIRR_POLICY = 'mirr_py'
-
-# todo: do we need it? Especially when we'll use other mocaps soon?
-# only when training to accelerate with the velocity ramp trajectories
-SKIP_N_STEPS = 1
-STEPS_PER_VEL = 1
 
 # ------------------
 
@@ -56,6 +49,7 @@ STEPS_PER_VEL = 1
 SIM_FREQ = cfg.SIM_FREQ
 CTRL_FREQ = cfg.CTRL_FREQ
 
+# todo: change all modifications to simple flags
 # specify modifications to the baseline algorithm, e.g. mirroring policy
 modifications_list = [MOD_CUSTOM_POLICY]
 modification = '/'.join(modifications_list)
@@ -70,7 +64,7 @@ rew_weights = '8200'
 # should that really matter? I think not
 ent_coef = {100: -0.0075, 200: -0.0075, 400: -0.00375}[CTRL_FREQ]
 init_logstd = -0.7
-pi_out_init_scale = 0.001
+# todo: put all cliprange settings in the same short block
 cliprange = 0.15
 # only for cliprange scheduling
 clip_start = 0.55 if is_mod(MOD_CLIPRANGE_SCHED) else cliprange
@@ -92,28 +86,6 @@ noptepochs = 4
 
 # ----------------------------------------------------------------------------------
 
-# choose environment
-if cfg.ENV_ID is not None:
-    env_id = cfg.ENV_ID
-    # short description of the env used in the save path
-    env_abbrev = env_id
-    env_is3d = True
-    env_out_torque = cfg.ENV_OUT_TORQUE
-    env_ids = ['MimicWalker2d-v0', 'MimicWalker2d-v0', 'MimicWalker3d-v0', 'MimicWalker3d-v0', 'MimicWalker3d-v0', 'Walker2d-v2', 'Walker2d-v3', 'Humanoid-v3', 'Blind-BipedalWalker-v2', 'BipedalWalker-v2']
-    env_abbrevs = ['mim2d', 'mim_trq2d', 'mim3d', 'mim_trq3d', 'mim_trq_ff3d', 'walker2dv2', 'walker2dv3', 'humanoid', 'blind_walker', 'walker']
-
-else:
-    env_ids = ['MimicWalker2d-v0', 'MimicWalker2d-v0', 'MimicWalker3d-v0', 'MimicWalker3d-v0', 'MimicWalker3d-v0', 'Walker2d-v2', 'Walker2d-v3', 'Humanoid-v3', 'Blind-BipedalWalker-v2', 'BipedalWalker-v2']
-    env_abbrevs = ['mim2d', 'mim_trq2d', 'mim3d', 'mim_trq3d', 'mim_trq_ff3d', 'walker2dv2', 'walker2dv3', 'humanoid', 'blind_walker', 'walker']
-    env_index = 4
-    env_id = env_ids[env_index]
-    # used in the save path (e.g. 'wlk2d')
-    env_abbrev = env_abbrevs[env_index]
-    env_out_torque = True
-    env_is3d = True
-
-# choose hyperparams
-algo = 'ppo2'
 # number of experiences to collect, not training steps.
 mio_samples = cfg.MIO_SAMPLES
 n_envs = cfg.N_PARALLEL_ENVS if utils.is_remote() and not DEBUG else 1
@@ -124,19 +96,16 @@ if is_mod(MOD_MIRR_POLICY): batch_size = int(batch_size / 2)
 
 lr_start = 500 * (1e-6)
 lr_final = 1 * (1e-6)
-_ep_dur_in_k = {400: 6, 200: 3, 100: 1.5, 50: 0.75}[CTRL_FREQ]
 ep_dur_max = cfg.MAX_EPISODE_STEPS # int(_ep_dur_in_k * 1e3)
 max_distance = cfg.MAX_WALKING_DISTANCE
 
-run_id = str(np.random.randint(0, 1000))
-info_baseline_hyp_tune = f'hl{str(hid_layer_sizes)}_ent{int(ent_coef * 1000)}_lr{lr_start}to{lr_final}_epdur{_ep_dur_in_k}_' \
-       f'bs{int(batch_size/1000)}_imrew{rew_weights}_gam{int(gamma*1e3)}'
-
+# todo: move to train.py
 # construct the paths to store the models at
+run_id = str(np.random.randint(0, 1000))
 _mod_path = ('debug/' if DEBUG else '') + \
-            f'train/{modification}/{env_abbrev}/{n_envs}envs/' \
-            f'{algo}/{mio_samples}mio/'
-save_path_norun= abs_project_path + 'models/' + _mod_path
+            f'train/{modification}/{cfg.ENV_ID}/{n_envs}envs/' \
+            f'{mio_samples}mio/'
+save_path_norun= utils.get_absolute_project_path() + 'models/' + _mod_path
 save_path = save_path_norun + f'{run_id}/'
 
 if __name__ == '__main__':

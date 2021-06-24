@@ -143,27 +143,6 @@ class Monitor(gym.Wrapper):
             self.trajecs_buffer[0, :, -1] = sim_trajecs
             self.trajecs_buffer[1, :, -1] = ref_trajecs
 
-            if PLOT_REF_DISTRIB:
-                # load trajectory distributions if not done already
-                if self.left_step_distrib is None:
-                    from scripts.common import config as cfg
-                    npz = np.load(cfg.abs_project_path +
-                                  'assets/ref_trajecs/distributions/2d_distributions_const_speed_400hz.npz')
-                    self.left_step_distrib = [npz['means_left'], npz['stds_left']]
-                    self.right_step_distrib = [npz['means_right'], npz['stds_right']]
-                    self.step_len = min(self.left_step_distrib[0].shape[1], self.right_step_distrib[0].shape[1])
-
-                # left and right step distributions are different
-                step_dist = self.left_step_distrib if self.refs.is_step_left() else self.right_step_distrib
-
-                # get current mean on the mocap distribution, exlude com_x_pos
-                pos = min(self.refs._pos, self.step_len - 1)
-                mean_state = step_dist[0][:, pos]
-                # terminate if distance is too big
-                std_state = 3 * step_dist[1][:, pos]
-                self.trajecs_buffer[2, :, -1] = mean_state
-                self.trajecs_buffer[3, :, -1] = std_state
-
             # do the same with the dones
             self.dones_buf = np.roll(self.dones_buf, -1)
             self.dones_buf[-1] = done
