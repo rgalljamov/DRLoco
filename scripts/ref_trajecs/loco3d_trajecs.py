@@ -21,11 +21,9 @@ ELBOW_FLEX_L, PRO_SUP_L, WRIST_FLEX_L, WRIST_DEV_L = range(33, 37)
 
 class Loco3dReferenceTrajectories(BaseReferenceTrajectories):
     def __init__(self, qpos_indices, qvel_indices, adaptations):
-        rel_mocap_data_path = 'assets/mocaps/loco3d/loco3d_guoping.mat'
         super(Loco3dReferenceTrajectories, self).__init__(500, 100,
                                                           qpos_indices, qvel_indices,
                                                           adaptations=adaptations)
-        self._pos = 1000
 
     def _load_ref_trajecs(self):
         dir_path = get_absolute_project_path()
@@ -58,7 +56,7 @@ class Loco3dReferenceTrajectories(BaseReferenceTrajectories):
         qvels_x = self._qvel_full[PELVIS_TX, self._pos: end_pos]
         # NOTE: y direction in the simulation corresponds to z direction in the mocaps
         qvels_y = self._qvel_full[PELVIS_TZ, self._pos: end_pos]
-        # get the mean velocitities
+        # get the mean velocities
         mean_x_vel = np.mean(qvels_x)
         mean_y_vel = np.mean(qvels_y)
         if debug:

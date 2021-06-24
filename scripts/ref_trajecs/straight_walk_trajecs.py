@@ -245,15 +245,6 @@ class StraightWalkingTrajectories(BaseReferenceTrajectories):
     def is_step_left(self):
         return self._i_step in self.left_step_indices
 
-    def get_random_init_state(self):
-        ''' Random State Initialization:
-            @returns: qpos and qvel of a random step at a random position'''
-        self._step = self._get_random_step()
-        self._pos = random.randint(0, len(self._step[0]) - 1)
-        # reset episode duration and so far traveled distance
-        self._ep_dur = 0
-        self.dist = 0
-        return self.get_qpos(), self.get_qvel()
 
     def _get_deterministic_init_state(self, i_step = 0):
         ''' Deterministic State Initialization.
@@ -488,6 +479,10 @@ class StraightWalkingTrajectories(BaseReferenceTrajectories):
     # ----------------------------
 
     def get_random_init_state(self):
+        # reset episode duration and so far traveled distance
+        self._ep_dur = 0
+        self.dist = 0
+
         # which of the 250 steps are we looking at
         self._i_step = random.randint(0, len(self.data) - 1)
         self._step = self.data[self._i_step]
@@ -496,6 +491,7 @@ class StraightWalkingTrajectories(BaseReferenceTrajectories):
         self._trajec_len = self._step.shape[1]
         self._pos = random.randint(0, self._trajec_len - 1)
         init_kinematics = self.get_qpos(), self.get_qvel()
+
         return init_kinematics
 
     def get_deterministic_init_state(self):

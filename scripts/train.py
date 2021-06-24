@@ -27,7 +27,7 @@ def init_wandb(model):
         "lr0": cfg.lr_start,
         "lr1": cfg.lr_final,
         'hid_sizes': cfg.hid_layer_sizes,
-        'peak_joint_torques': cfg.peak_joint_torques,
+        # 'peak_joint_torques': cfg.peak_joint_torques,
         'walker_xml_file': cfg.walker_xml_file,
         "noptepochs": cfg.noptepochs,
         "batch_size": batch_size,

@@ -7,15 +7,16 @@ DEBUG_TRAINING = False
 # determine if Pytorch should use CPU or GPU
 USE_CPU = True
 # maximum walking distance after which the episode is terminated
-MAX_WALKING_DISTANCE = 15
+MAX_WALKING_DISTANCE = 150 # testing if we really need this
 # maximum length of an episode
-MAX_EPISODE_STEPS = 3000
+MAX_EPISODE_STEPS = 1000
 
 # configure Weights & Biases
 WB_PROJECT_NAME = 'debug_loco3d'
 # todo: definitely also try increasing the velocity reward weight
-WB_RUN_NAME = f'vel05 + rew_scale10'
-WB_RUN_DESCRIPTION = 'Calculating desired velocity from 0.5 seconds of future mocaps. ' \
+WB_RUN_NAME = f'straight + 512 + vel05 + rew_scale10'
+WB_RUN_DESCRIPTION = 'Training the straight walker without policy mirroring. ' \
+                     'Calculating desired velocity from 0.5 seconds of future mocaps. ' \
                      'Scaling the reward by 100. ' \
                      'Fixed a lot of issues in monitoring. ' \
                      'Evaluate the model by letting it walk straight. ' \
@@ -39,9 +40,7 @@ WB_RUN_DESCRIPTION = 'Calculating desired velocity from 0.5 seconds of future mo
 # -----------------------------
 
 # the registered gym environment id, e.g. 'Walker2d-v2'
-ENV_ID = 'MimicWalker165cm65kg-v0' # 'MimicWalker3d-v0'
-# walker XML file
-WALKER_MJC_XML_FILE = 'walker3d_hip3d.xml' # 'walker3d_flat_feet.xml' # 'walker3d_flat_feet_lowmass.xml' # 'walker3d_flat_feet_40kg_140cm.xml' #
+ENV_ID = 'MimicWalker3d-v0' # 'MimicWalker165cm65kg-v0' #
 # simulation frequency... overwrites the frequency specified in the xml file
 SIM_FREQ = 1000
 # control frequency in Hz

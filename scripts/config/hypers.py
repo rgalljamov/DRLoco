@@ -78,7 +78,7 @@ clip_end = 0.1 if is_mod(MOD_CLIPRANGE_SCHED) else cliprange
 clip_exp_slope = 5
 
 # just for logging to wandb
-walker_xml_file = cfg.WALKER_MJC_XML_FILE
+walker_xml_file = cfg.ENV_ID
 
 hid_layer_sizes = cfg.hid_layer_sizes
 activation_fns = [th.nn.Tanh]*2

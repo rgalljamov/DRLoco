@@ -13,11 +13,11 @@ walker_qpos_indices = [refs.PELVIS_TX, refs.PELVIS_TZ, refs.PELVIS_TY,
                        refs.HIP_FLEXION_L, refs.HIP_ADDUCTION_L, refs.HIP_ROTATION_L,
                        refs.KNEE_ANG_L, refs.ANKLE_ANG_L]
 
-# empty, as model representing the same subject the mocap data was collected from!
-adaptations = {}
-
 # the indices in the joint position and joint velocity matrices are the same for all joints
 walker_qvel_indices = walker_qpos_indices
+
+# empty, as model representing the same subject the mocap data was collected from!
+adaptations = {}
 
 class MimicWalker165cm65kgEnv(MimicEnv):
     def __init__(self):

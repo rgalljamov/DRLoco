@@ -3,6 +3,8 @@ import numpy as np
 import seaborn as sns
 from os import path, getcwd
 
+# todo: remove or document (can this be useful for other users too? I think so!)
+#  running the model on the Laptop for debugging and on the server/remote for training.
 def is_remote():
     # automatically detect running PC
     return 'code/torch' in path.abspath(getcwd())

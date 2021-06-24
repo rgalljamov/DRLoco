@@ -5,7 +5,6 @@ import numpy as np
 import typing as typ
 import gym, mujoco_py
 from gym.envs.mujoco.mujoco_env import MujocoEnv
-from scripts.config import config as cfgl
 from scripts.config import hypers as cfg
 from scripts.common.utils import log, is_remote, \
     exponential_running_smoothing as smooth
@@ -24,7 +23,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
         self.refs = ref_trajecs
         # set simulation and control frequency
-        self._sim_freq, self._frame_skip = self.get_sim_freq_and_frameskip()
+        self._sim_freq, self._frame_skip = self._get_sim_freq_and_frameskip()
         # flag required for a workaround due to MujocoEnv calling step() during initialization
         self.finished_init = False
 
@@ -71,7 +70,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         #  called modify_actions or preprocess actions instead of this?
         #  otherwise document, that we're rescaling actions
         #  and add action ranges into the environment (get_action_ranges())
-        action = self.rescale_actions(action)
+        action = self._rescale_actions(action)
 
         # todo: remove that after you've made sure, the simple env works as before
         # todo: Add a static method to each environment
@@ -82,6 +81,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
         # execute simulation with desired action for multiple steps
         self.do_simulation(action, self._frame_skip)
+        # self.render()
 
         # increment the current position on the reference trajectories
         self.refs.next()
@@ -99,9 +99,6 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         # update the so far traveled distance
         self.update_walked_distance()
 
-        # get imitation reward
-        reward = self.get_imitation_reward()
-
         # todo: add a function is_done() that can be overwritten
         # check if we entered a terminal state
         com_z_pos = self.sim.data.qpos[self._get_COM_indices()[-1]]
@@ -118,7 +115,6 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         reward = self.get_reward(done)
 
         return obs, reward, done, {}
-
 
     def update_walked_distance(self):
         """Get the so far traveled distance by integrating the velocity vector."""
@@ -159,8 +155,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
         return reward
 
-
-    def rescale_actions(self, action):
+    def _rescale_actions(self, action):
         """
         Our policy samples actions from a Gaussian distribution
         centered around 0 with an initial standard deviation of 0.5.
@@ -184,8 +179,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
         return np.array(scaled_action)
 
-
-    def get_sim_freq_and_frameskip(self):
+    def _get_sim_freq_and_frameskip(self):
         """
         What is the frequency the simulation is running at
         and how many frames should be skipped during step(action)?
@@ -256,22 +250,14 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
     def playback_ref_trajectories(self, timesteps=2000):
         self._PLAYBACK_REF_TRAJECS = True
 
-        from gym_mimic_envs.monitor import Monitor
-        env = Monitor(self)
+        # from gym_mimic_envs.monitor import Monitor
+        # env = Monitor(self)
 
-        env.reset()
+        self.reset()
 
         for i in range(timesteps):
             self.refs.next()
-            ZERO_INPUTS = False
-            if ZERO_INPUTS:
-                qpos, qvel = self.get_joint_kinematics()
-                qpos = np.zeros_like(qpos)
-                qvel = np.zeros_like(qvel)
-                self.set_joint_kinematics_in_sim(qpos, qvel)
-            else:
-                self.set_joint_kinematics_in_sim()
-            # self.step(np.zeros_like(self.action_space.sample()))
+            self.set_joint_kinematics_in_sim()
             for _ in range(self._frame_skip):
                 self.sim.forward()
                 self.render()
@@ -326,7 +312,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             plt.show()
 
 
-    def estimate_phase_vars_from_joint_phase_plots(self, qpos, qvel, debug=True):
+    def estimate_phase_vars_from_joint_phase_plots(self, qpos, qvel, debug=False):
         """
         For a detailed description, please see the doc string of the
         function get_joint_indices_for_phase_estimation().
