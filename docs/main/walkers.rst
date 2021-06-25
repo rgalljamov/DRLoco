@@ -1,3 +1,4 @@
+.. _walkers:
 
 Walker Environments
 *************************
@@ -5,7 +6,9 @@ Walker Environments
 .. important::
 
    So far, people can only use the framework with MuJoCo models.
-   It should be actually quite easy to change the mimic Environment to derive from a gym environment instead a mujoco gym environment.
+   It should be actually quite easy to change the Mimic Environment to derive from a gym environment instead a mujoco gym environment and allow to use our framework with every gym env.
+
+
 
 
 Straight Walker

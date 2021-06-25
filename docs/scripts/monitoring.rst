@@ -13,5 +13,9 @@ Monitor Environment Wrapper
 ==============================
 
 
-Weights & Biases and Tensorboard
-=======================================
+Weights & Biases (WB) and Tensorboard (TB)
+============================================
+
+
+How to log an additional custom metric to TB and WB?
+========================================================

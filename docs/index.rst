@@ -13,6 +13,16 @@ DRLoco - DeepMimic meets MuJoCo for Locomotion
    Do we need to limit ourselves to walker environments only? 
    Actually not at all! The only thing so far that limits us to walking is the evaluation of the agents performance. When we refactor the code to allow implementing custom evaluation, we've created a easy to use DeepMimic Framework.
 
+This repository for you, when:
+===============================
+
+ * you have a bipedal robot and need a controller to generate stable human-like walking
+ * you have a MuJoCo model of a bipedal robot and you want it to learn to walk like a human
+ * you have any kind of a legged robot and a set of reference trajectories (e.g. motion capturing) and you want a robust controller to let your robot imitate the reference motion.
+ * you want to try out the DeepMimic Approach with minimal effort
+ * you need high quality mocap data for Imitation Learning
+
+
 
 How to read this documentation?
 =================================
