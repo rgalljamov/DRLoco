@@ -3,10 +3,16 @@ import numpy as np
 import seaborn as sns
 from os import path, getcwd
 
-# todo: remove or document (can this be useful for other users too? I think so!)
-#  running the model on the Laptop for debugging and on the server/remote for training.
 def is_remote():
-    # automatically detect running PC
+    """
+    We found it useful to sometimes just shortly run the model on the local laptop,
+    e.g. for debugging or rendering the training, and for computational-heavy tasks
+    like training the agents, we use a remote machine.
+
+    This method returns True, when the scripts are executed on the remote server and False otherwise.
+    To detect the remote server, we just check for the scripts absolute path
+    which is different on both machines.
+    """
     return 'code/torch' in path.abspath(getcwd())
 
 def get_absolute_project_path():
@@ -127,7 +133,7 @@ def vec_env(env_name, num_envs=4, seed=33, norm_rew=True,
     #  the same way as when we load a complete trained model.
     else:
         try:
-            from scripts.common.config import is_mod, MOD_LOAD_OBS_RMS
+            from scripts.config.hypers import is_mod, MOD_LOAD_OBS_RMS
             if not is_mod(MOD_LOAD_OBS_RMS): raise Exception
             # load the obs_rms from a previously trained model
             init_obs_rms_path = abs_project_path + \
@@ -146,7 +152,7 @@ def vec_env(env_name, num_envs=4, seed=33, norm_rew=True,
 
 def check_environment(env_name):
     from gym_mimic_envs.monitor import Monitor as EnvMonitor
-    from stable_baselines.common.env_checker import check_env
+    from stable_baselines3.common.env_checker import check_env
     env = gym.make(env_name)
     log('Checking custom environment')
     check_env(env)

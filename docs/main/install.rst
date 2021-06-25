@@ -29,8 +29,7 @@ This page guides you through the installation process to get up and running with
 
 #. Install *PyTorch* using the `official installation guide <https://pytorch.org/get-started/locally/>`_ choosing the following options:
 
-.. image:: ../_static/images/pytorch_installation_configuration.png
-
+	.. image:: ../_static/images/pytorch_installation_configuration.png
 
 #. Install MuJoCo and mujoco-py following `these instructions <https://github.com/openai/mujoco-py#install-mujoco>`_.
 
@@ -42,26 +41,33 @@ This page guides you through the installation process to get up and running with
 
 	#. If sth. goes wrong, remove the '[extra]'. This will leave out multiple packages, that you will need to install later separately, e.g. *tensorboard*.
 
-
-#. Clone this repository (link: https://github.com/rgalljamov/DRLoco)
-
-#. Install the gym_mimic_envs (will be improved in the future)
-
-	1. Open a terminal and navigate to the mujoco folder, where 'gym_mimic_envs' folder is located. 
-	2. `pip install -e .` to install the environment
-
-	    1. If you get the error "ERROR: Package 'imageio' requires a different Python: 2.7.17 not in '>=3.5'", use `pip3 install -e .` instead. 
-	    
-    3. NOTE: It is important to not use `sudo` during installation.
+	#. If there are still some issues, please check the `official documentation of Stable Baselines <https://stable-baselines3.readthedocs.io/en/master/guide/install.html>`_.
 
 
-#. **TODO: we can automate this step by just getting the current directory and appending it to sys.path!** Change `sys.path.append('/home/rustam/code/torch/')` in 'scripts/common/config.py' to reflect the path to the main folder where the code is stored 'path/to/folder_with_scripts_folder/'
+#. Clone this repository to your local PC (`Link to repository <https://github.com/rgalljamov/DRLoco>`_)
 
-#. Change `assets_path` in 'ref_trajecs.py'.
+#. Install the gym_mimic_envs (this step will no longer be required in the future... in the moment it is required to register our mujoco environments.)
 
-#. Change `is_remote()` in 'scripts/common/utils.py'
+	1. Open a terminal and navigate to the ``mujoco`` folder, where the ``gym_mimic_envs`` folder is located. 
+	2. ``pip install -e .`` to install the environment
 
-#. Execute``scripts/run.py`` to see if there are any other packages missing in your environment and install them, too. If everything went well, you should see a MuJoCo model walking in circles. Once, the simulation appears, press [Space] to start the simulation.
+	    1. If you get the error "ERROR: Package 'imageio' requires a different Python: 2.7.17 not in '>=3.5'", use ``pip3 install -e .`` instead. 
+
+    	.. important:: It is important to **not** use *sudo* during installation!
+
+
+#. Change the path in ``sys.path.append('/home/rustam/code/torch/')`` in ``scripts/common/config.py`` to reflect the path to the main folder where the repository was cloned to.
+	
+	#. **TODO: we can automate this step by just getting the current directory and appending it to sys.path!**
+
+#. Change :func:`is_remote` in ``scripts/common/utils.py``
+
+#. Execute``scripts/run.py`` to see if there are any other packages missing in your environment and install them, too. If everything went well, you should see a MuJoCo model walking in circles. Once, the simulation appears, **press [Space]** to start the simulation.
+
+
+
+Installing Additional Features
+===============================
 
 #. To record videos of the generated walking gait at the training's end, we need to further install ``ffmpeg``: ``conda install -c conda-forge ffmpeg``
 
