@@ -4,48 +4,73 @@
 Installation
 ******************
 
+This page guides you through the installation process to get up and running with DRLoco. It should take about an hour, but might also get tricky depending on your system and require some googling to solve unexpected issues. So be prepared and best luck!
+
 .. warning::
-   
-   @Guoping, I've not set up the environment on a purely new empty PC. Instead our DL PC already had some packages installed. Therefore, the installation guidelines below might not be sufficient. I'll go through all the steps on Oksanas Laptop and write a better documentation of the installation processs!
+
+   This repository was developed and tested on Ubuntu 16.04 and Ubuntu 18.04 using Python 3.7. The installation instructions are the same for both Ubuntu versions and should also apply to newer Ubuntu versions.
 
 
-This page guides you command by command through the process to get up and running with DRLoco. It will take some time (1-2 hours or days in the worst case) and might get tricky at some point, but it's all worth it.
+#. Install Anaconda following the `official installation guide <https://docs.anaconda.com/anaconda/install/linux/#installation>`_.
 
-Setting up the DRL environment for Pytorch and SB3
+	#. *Anaconda*, or *conda* for short. is a data science toolkit (and package manager) that allows you to easily install open-source python packages and organize them in separate environments.
 
-1. Update your systems packages to the newest version: ``sudo apt update`` and ``sudo apt upgrade``
+#. Create a new conda environment with Python 3.7 (you can change the environment name *drloco* to evry other name you like)
 
-2. ``sudo apt-get install cuda-drivers-450``
-	a. does work... there is now a huge list of cuda-packages that were automatically installed and are no longer required with the info to remove them with 'sudo apt autoremove'
-	b. apt list --upgradable leads to 'Listing... Done.'
+	.. code-block:: console
 
-3. ``sudo apt autoremove``
-	1. almost 5GB of storage will be freed. 
-	2. lots of nvidia and cuda packages are getting deleted.
-	3. apt update and apt list --upgradable does not show any open packages to insall
+	   conda create -n drloco python=3.7
+
+#. Activate the new envrionment	   
+
+	.. code-block:: console
+
+	   source activate drloco
+
+#. Install *PyTorch* using the `official installation guide <https://pytorch.org/get-started/locally/>`_ choosing the following options:
+
+.. image:: ../_static/images/pytorch_installation_configuration.png
 
 
+#. Install MuJoCo and mujoco-py following `these instructions <https://github.com/openai/mujoco-py#install-mujoco>`_.
 
-## Setting up the CONDA environment
----------------------------------------------
+#. Install Stable-Baselines 3 with the command below
 
-1. conda update -n base conda
-	1. to update conda to the newest version
+	.. code-block:: console
 
-2. conda create -n torch python=3.8
-	1. 'torch' here is the name of the conda environment. You can replace it.
-	2. NOTE: If debugging is not working with _python=3.8_, just install python 3.7 after the environment is created with `conda install python=3.7`
+	   pip install stable-baselines3[extra]
 
-3. conda activate torch; pip install stable-baselines3
+	#. If sth. goes wrong, remove the '[extra]'. This will leave out multiple packages, that you will need to install later separately, e.g. *tensorboard*.
 
-4. install mujoco_py: ``pip3 install mujoco-py``
 
-5. Try executing one of the scripts in the ``scripts/`` folder to see if there are any other packages missing in your environment and install them, too.
+#. Clone this repository (link: https://github.com/rgalljamov/DRLoco)
 
-6. To record videos of the generated walking gait at the training's end, we need to further install ``ffmpeg``: ``conda install -c conda-forge ffmpeg``
+#. Install the gym_mimic_envs (will be improved in the future)
+
+	1. Open a terminal and navigate to the mujoco folder, where 'gym_mimic_envs' folder is located. 
+	2. `pip install -e .` to install the environment
+
+	    1. If you get the error "ERROR: Package 'imageio' requires a different Python: 2.7.17 not in '>=3.5'", use `pip3 install -e .` instead. 
+	    
+    3. NOTE: It is important to not use `sudo` during installation.
+
+
+#. **TODO: we can automate this step by just getting the current directory and appending it to sys.path!** Change `sys.path.append('/home/rustam/code/torch/')` in 'scripts/common/config.py' to reflect the path to the main folder where the code is stored 'path/to/folder_with_scripts_folder/'
+
+#. Change `assets_path` in 'ref_trajecs.py'.
+
+#. Change `is_remote()` in 'scripts/common/utils.py'
+
+#. Execute``scripts/run.py`` to see if there are any other packages missing in your environment and install them, too. If everything went well, you should see a MuJoCo model walking in circles. Once, the simulation appears, press [Space] to start the simulation.
+
+#. To record videos of the generated walking gait at the training's end, we need to further install ``ffmpeg``: ``conda install -c conda-forge ffmpeg``
+
 	1. If you want to record the video on a remote server without a UI, in addtion install
 		1. `sudo apt install xvfb`
 		2. to execute the training script run `xvfb-run python /path/to/script.py`
 		3. if the first two steps still not allow to record videos, use
 			1. install `conda install -c conda-forge pyvirtualdisplay`
-`
+
+#. Install Weights&Biases for logging training results
+
+	1. `conda install -c conda-forge wandb`

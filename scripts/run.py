@@ -38,7 +38,7 @@ SPEED_CONTROL = False
 speeds = [0.5, 1, 1.25, 1.25]
 duration_secs = 8
 
-PLAYBACK_TRAJECS = False
+PLAYBACK_TRAJECS = True
 
 # which model would you like to run
 FROM_PATH = False
