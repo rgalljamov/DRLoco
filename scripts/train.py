@@ -22,6 +22,7 @@ def init_wandb(model):
     batch_size = model.n_steps * model.n_envs
     params = {
         "path": cfg.save_path,
+        "env_id": cfgl.ENV_ID,
         "mod": cfg.modification,
         "ctrl_freq": cfg.CTRL_FREQ,
         "lr0": cfg.lr_start,
@@ -42,7 +43,6 @@ def init_wandb(model):
         "logstd": cfg.init_logstd,
         # "min_logstd": LOG_STD_MIN,
         # "max_logstd": LOG_STD_MAX,
-        "env": cfg.env_abbrev,
         "gam": model.gamma,
         "lam": model.gae_lambda,
         "n_envs": model.n_envs,
@@ -71,7 +71,7 @@ def train():
         os.makedirs(cfg.save_path + 'envs')
 
     # setup environment
-    env = utils.vec_env(cfg.env_id, norm_rew=True, num_envs=cfg.n_envs)
+    env = utils.vec_env(cfgl.ENV_ID, norm_rew=True, num_envs=cfg.n_envs)
 
     # setup model/algorithm
     training_timesteps = int(cfg.mio_samples * 1e6)

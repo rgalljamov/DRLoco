@@ -16,6 +16,8 @@ WB_PROJECT_NAME = 'debug_loco3d'
 # todo: definitely also try increasing the velocity reward weight
 WB_RUN_NAME = f'straight + 512 + vel05 + rew_scale10'
 WB_RUN_DESCRIPTION = 'Training the straight walker without policy mirroring. ' \
+                     'Set max walking distance to 150m to check if we really need it. ' \
+                     'Max spisode steps reduced to 1000 as we are now training at 100Hz' \
                      'Calculating desired velocity from 0.5 seconds of future mocaps. ' \
                      'Scaling the reward by 100. ' \
                      'Fixed a lot of issues in monitoring. ' \
@@ -40,11 +42,12 @@ WB_RUN_DESCRIPTION = 'Training the straight walker without policy mirroring. ' \
 # -----------------------------
 
 # the registered gym environment id, e.g. 'Walker2d-v2'
-ENV_ID = 'MimicWalker3d-v0' # 'MimicWalker165cm65kg-v0' #
+ENV_ID = 'MimicWalker165cm65kg-v0' # 'MimicWalker3d-v0' #
 # simulation frequency... overwrites the frequency specified in the xml file
 SIM_FREQ = 1000
 # control frequency in Hz
-CTRL_FREQ = 200
+CTRL_FREQ = {'MimicWalker3d-v0': 200,
+             'MimicWalker165cm65kg-v0': 100}[ENV_ID]
 # does the model uses joint torques (True) or target angles (False)?
 # todo: remove this flag as all our models output torque
 ENV_OUT_TORQUE = True

@@ -88,8 +88,8 @@ class BaseReferenceTrajectories:
         increment = self._sample_freq / self._control_freq
         assert increment.is_integer(), \
             f'Please check your control frequency and the sample frequency of the reference data!' \
-            f'The sampling frequency of the reference data should be equal to ' \
-            f'or an integer multiple of the control frequency.'
+            f'The sampling frequency ({self._sample_freq}) of the reference data should be equal to ' \
+            f'or an integer multiple of the control frequency which is set to {self._control_freq}.'
         self._increment = int(increment)
 
     def next(self):

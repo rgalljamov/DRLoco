@@ -1,8 +1,7 @@
-# workaround to start scripts from cmd on any remote server
+# add current working directory to the system path 
 import sys
-
-# TODO think we only need this, because the path is not added to python_path
-sys.path.append('/home/rustam/code/torch/')
+from os import getcwd
+sys.path.append(getcwd())
 
 import numpy as np
 import torch as th

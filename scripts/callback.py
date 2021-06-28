@@ -7,7 +7,7 @@ from scripts.config import hypers as cfg
 from scripts.common import utils
 from torch.utils.tensorboard import SummaryWriter
 from stable_baselines3.common.callbacks import BaseCallback
-from scripts.config.config import CTRL_FREQ
+from scripts.config.config import CTRL_FREQ, ENV_ID
 
 # define intervals/criteria for saving the model
 # save everytime the agent achieved an additional 10% of the max possible return
@@ -283,7 +283,7 @@ class TrainingMonitor(BaseCallback):
             utils.save_model(self.model, cfg.save_path, checkpoint, full=False)
 
         # load the evaluation environment
-        eval_env = utils.load_env(checkpoint, cfg.save_path, cfg.env_id)
+        eval_env = utils.load_env(checkpoint, cfg.save_path, ENV_ID)
         mimic_env = eval_env.venv.envs[0].env
         mimic_env.activate_evaluation()
 

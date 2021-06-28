@@ -21,7 +21,14 @@ ELBOW_FLEX_L, PRO_SUP_L, WRIST_FLEX_L, WRIST_DEV_L = range(33, 37)
 
 class Loco3dReferenceTrajectories(BaseReferenceTrajectories):
     def __init__(self, qpos_indices, qvel_indices, adaptations):
-        super(Loco3dReferenceTrajectories, self).__init__(500, 100,
+        # the mocaps were sampled with 500Hz
+        sampling_frequency = 500
+        # for control frequency, use the one specified in the config file
+        from scripts.config.config import CTRL_FREQ
+        control_frequency = CTRL_FREQ
+        # initialize the base class
+        super(Loco3dReferenceTrajectories, self).__init__(sampling_frequency,
+                                                          control_frequency,
                                                           qpos_indices, qvel_indices,
                                                           adaptations=adaptations)
 
