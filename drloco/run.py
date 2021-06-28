@@ -8,13 +8,13 @@ from os import getcwd
 sys.path.append(getcwd())
 
 import gym, time, mujoco_py
-# necessary to import custom gym environments
-import gym_mimic_envs
-from gym_mimic_envs.monitor import Monitor
+from drloco.mujoco.monitor_wrapper import Monitor
 from stable_baselines3 import PPO
-from drloco.common.utils import load_env, get_absolute_project_path
+from drloco.common.utils import load_env, get_project_path
 from drloco.config import hypers as cfg
 from drloco.config import config as cfgl
+from drloco.mujoco.mimic_walker3d import MimicWalker3dEnv
+from drloco.mujoco.mimic_walker_165cm_65kg import MimicWalker165cm65kgEnv
 
 # paths
 # PD baseline
@@ -32,7 +32,7 @@ path_guoping = '/mnt/88E4BD3EE4BD2EF6/Masters/M.Sc. Thesis/Code/models/dmm/cstm_
                'mirr_exps/MimicWalker3d-v0/8envs/ppo2/8mio/361'
 path_140cm_40kg = '/mnt/88E4BD3EE4BD2EF6/Masters/M.Sc. Thesis/Code/models/dmm/cstm_pi/' \
                   'refs_ramp/mirr_exps/MimicWalker3d-v0/8envs/ppo2/16mio/197-evaled-ret78'
-path_agent = get_absolute_project_path() + 'models/dmm/cstm_pi/mim_trq_ff3d/8envs/ppo2/8mio/296-evaled-ret79'
+path_agent = get_project_path() + 'models/dmm/cstm_pi/mim_trq_ff3d/8envs/ppo2/8mio/296-evaled-ret79'
 path_agent = '/mnt/88E4BD3EE4BD2EF6/Users/Sony/Google Drive/WORK/DRL/CodeTorch/models/train/' \
              'cstm_pi/refs_ramp/mirr_py/MimicWalker3d-v0/8envs/ppo2/4mio/885'
 
@@ -65,7 +65,12 @@ if FROM_PATH:
     env = load_env(checkpoint, PATH, cfg.env_id)
 else:
     env_id = cfgl.ENV_ID # 'MimicWalker165cm65kg-v0' # 'MimicWalker3d-v0' # 'MimicWalker3dHip-v0' #
-    env = gym.make(env_id)
+    if env_id == 'MimicWalker3d-v0':
+        env = MimicWalker3dEnv()
+    elif env_id == 'MimicWalker165cm65kg-v0':
+        env = MimicWalker165cm65kgEnv()
+    else:
+        raise ModuleNotFoundError(f'The specified environment not found: {env_id}')
     env = Monitor(env)
     vec_env = env
     if PLAYBACK_TRAJECS:

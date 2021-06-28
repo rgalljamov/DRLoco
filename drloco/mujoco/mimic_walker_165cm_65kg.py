@@ -1,8 +1,6 @@
-from os.path import join, dirname
-from gym_mimic_envs.mimic_env import MimicEnv
+from drloco.common.utils import get_project_path
+from drloco.mujoco.mimic_env import MimicEnv
 import drloco.ref_trajecs.loco3d_trajecs as refs
-from drloco.ref_trajecs.straight_walk_hip3d_trajecs import StraightWalking3dHipTrajectories
-from gym_mimic_envs.mujoco.mimic_walker3d import MimicWalker3dEnv, qpos_indices, qvel_indices
 
 # specify which joint trajectories are required for the current walker
 walker_qpos_indices = [refs.PELVIS_TX, refs.PELVIS_TZ, refs.PELVIS_TY,
@@ -21,14 +19,11 @@ adaptations = {}
 
 class MimicWalker165cm65kgEnv(MimicEnv):
     def __init__(self):
-        # specify the name of the environment XML file
-        walker_xml = 'walker_165cm_65kg.xml'
         # init reference trajectories
-        # by specifying the indices in the mocap data to use for qpos and qvel
         ref_trajecs = refs.Loco3dReferenceTrajectories(
             walker_qpos_indices, walker_qvel_indices, adaptations)
         # specify absolute path to the MJCF file
-        mujoco_xml_file = join(dirname(__file__), "assets", walker_xml)
+        mujoco_xml_file = get_project_path() + 'drloco/mujoco/xml/walker_165cm_65kg.xml'
         # init the mimic environment
         MimicEnv.__init__(self, mujoco_xml_file, ref_trajecs)
 

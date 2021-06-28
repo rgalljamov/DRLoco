@@ -15,11 +15,13 @@ def is_remote():
     """
     return 'code/torch' in path.abspath(getcwd())
 
-def get_absolute_project_path():
+def get_project_path():
+    """Returns the absolute path to the project folder,
+       e.g. '/absolute/local/path/to/repo/'. """
     dirname = path.dirname
     return dirname(dirname(dirname(__file__))) + '/'
 
-abs_project_path = get_absolute_project_path()
+abs_project_path = get_project_path()
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecNormalize
 # import gym_mimic_envs
 
@@ -103,7 +105,7 @@ def vec_env(env_name, num_envs=4, seed=33, norm_rew=True,
                       load the running means from this path.
     :returns: VecNormalize (wrapped Subproc- or Dummy-VecEnv) '''
 
-    from gym_mimic_envs.mimic_env import MimicEnv
+    from drloco.mujoco.mimic_env import MimicEnv
     from gym_mimic_envs.monitor import Monitor as EnvMonitor
 
     def make_env_func(env_name, seed, rank):

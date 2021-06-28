@@ -1,6 +1,6 @@
 import numpy as np
 from collections import Iterable
-from drloco.common.utils import get_absolute_project_path
+from drloco.common.utils import get_project_path
 
 
 class BaseReferenceTrajectories:

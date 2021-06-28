@@ -104,7 +104,7 @@ run_id = str(np.random.randint(0, 1000))
 _mod_path = ('debug/' if DEBUG else '') + \
             f'train/{modification}/{cfg.ENV_ID}/{n_envs}envs/' \
             f'{mio_samples}mio/'
-save_path_norun= utils.get_absolute_project_path() + 'models/' + _mod_path
+save_path_norun= utils.get_project_path() + 'models/' + _mod_path
 save_path = save_path_norun + f'{run_id}/'
 
 if __name__ == '__main__':

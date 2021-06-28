@@ -12,7 +12,7 @@ import scipy.io as spio
 from drloco.ref_trajecs.base_ref_trajecs import BaseReferenceTrajectories
 from drloco.config.hypers import is_mod, MOD_REFS_RAMP, EVAL_N_TIMES
 from drloco.common.utils import log, is_remote, config_pyplot, smooth_exponential, \
-    get_absolute_project_path
+    get_project_path
 
 
 # relative paths to trajectories
@@ -320,7 +320,7 @@ class StraightWalkingTrajectories(BaseReferenceTrajectories):
         """ In this class, the data is split into individual steps.
             Shape of data is: (n_steps, data_dims, traj_len). """
         # load matlab data, containing trajectories of 250 steps
-        path = get_absolute_project_path() + PATH_REF_TRAJECS
+        path = get_project_path() + PATH_REF_TRAJECS
         data = spio.loadmat(path, squeeze_me=True)
         # 250 steps, shape (250,1), where 1 is an array with kinematic data
         data = data['Data']

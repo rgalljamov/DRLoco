@@ -57,7 +57,7 @@ class Approach:
         self.project_name = project_name
         self.train_duration_mio = 16 if 'pd' in approach_name else 8
         self.run_name = run_name
-        self.path = utils.get_absolute_project_path() + f'graphs/{self.name}/'
+        self.path = utils.get_project_path() + f'graphs/{self.name}/'
         self.metrics_names = metrics_names
         data_on_disc = self._get_metrics_data()
         self._calculate_statistics()
@@ -108,7 +108,7 @@ class Approach:
 
     def save(self):
         # prepare and create path if necessary
-        path = utils.get_absolute_project_path() + 'graphs/'
+        path = utils.get_project_path() + 'graphs/'
         path += self.name + '/'
         if not os.path.exists(path):
             os.makedirs(path)

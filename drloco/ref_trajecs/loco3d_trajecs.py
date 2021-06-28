@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.io as spio
-from drloco.common.utils import get_absolute_project_path
+from drloco.common.utils import get_project_path
 from drloco.ref_trajecs.base_ref_trajecs import BaseReferenceTrajectories
 
 # create index constants for easier access to specific reference trajectory parts
@@ -33,7 +33,7 @@ class Loco3dReferenceTrajectories(BaseReferenceTrajectories):
                                                           adaptations=adaptations)
 
     def _load_ref_trajecs(self):
-        dir_path = get_absolute_project_path()
+        dir_path = get_project_path()
         file_path = 'assets/mocaps/loco3d/loco3d_guoping.mat'
 
         data = spio.loadmat(dir_path + file_path, squeeze_me=True)

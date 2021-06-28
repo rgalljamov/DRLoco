@@ -42,7 +42,7 @@ WB_RUN_DESCRIPTION = 'Training the straight walker without policy mirroring. ' \
 # -----------------------------
 
 # the registered gym environment id, e.g. 'Walker2d-v2'
-ENV_ID = 'MimicWalker165cm65kg-v0' # 'MimicWalker3d-v0' #
+ENV_ID = 'MimicWalker3d-v0' # 'MimicWalker165cm65kg-v0' #
 # simulation frequency... overwrites the frequency specified in the xml file
 SIM_FREQ = 1000
 # control frequency in Hz
