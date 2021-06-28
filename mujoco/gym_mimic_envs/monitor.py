@@ -39,21 +39,8 @@ class Monitor(gym.Wrapper):
 
         self.setup_containers()
 
-        self.plt = config_pyplot(fig_size=True, font_size=12,
-                                 tick_size=12, legend_fontsize=16)
+        self.plt = config_pyplot(fig_size=True)
 
-    def activate_speed_control(self, speeds):
-        """TODO: Work in progress. Build desired speed trajectory from speeds.
-            @param speeds: list of desired velocities, this method should linearly interpolate between
-            and use them as the desired walking speed.
-           Currently speeds should be a list of two speeds.
-           The desired speed trajectory is then a ramp from speeds[0] to speeds[1] and back, repeated several times."""
-        self.SPEED_CONTROL = True
-        desired_walking_speeds = np.concatenate(
-            [np.linspace(speeds[0], speeds[1], int(_trajec_buffer_length/6)),
-            np.linspace(speeds[1], speeds[0], int(_trajec_buffer_length/6))])
-        desired_walking_speeds = np.concatenate((desired_walking_speeds, desired_walking_speeds, desired_walking_speeds))
-        self.env.activate_speed_control(desired_walking_speeds)
 
     def setup_containers(self):
         self.ep_len = 0
@@ -69,8 +56,8 @@ class Monitor(gym.Wrapper):
         self.grfs_right = []
         self.moved_distance_smooth = 0
         # track phases during initialization and ET
-        self.et_phases = []
-        self.rsi_phases = []
+        self.et_positions = []
+        self.rsi_positions = []
         # which phases lead to episode lengths smaller than the running average
         self.difficult_rsi_phases = []
         # track reward components
@@ -102,8 +89,8 @@ class Monitor(gym.Wrapper):
         obs, reward, done, _ = self.env.step(action)
 
         if self.ep_len == 0:
-            self.init_phase = self.env.refs.get_phase_variable()
-            self.rsi_phases.append(self.init_phase)
+            self.init_pos = self.env.refs._pos
+            self.rsi_positions.append(self.init_pos)
         self.ep_len += 1
 
         self.reward = reward
@@ -116,8 +103,8 @@ class Monitor(gym.Wrapper):
 
         if done:
             # get phase ET was detected at
-            et_phase = self.env.refs.get_phase_variable()
-            self.et_phases.append(et_phase)
+            et_pos = self.env.refs._pos
+            self.et_positions.append(et_pos)
 
             ep_rewards = self.rewards[-self.ep_len:]
             mean_reward = np.mean(ep_rewards[:-1])
@@ -133,11 +120,10 @@ class Monitor(gym.Wrapper):
             self.ep_lens.append(self.ep_len)
             self.ep_len_smoothed = smooth('ep_len', self.ep_len, 0.75)
             if self.ep_len < self.ep_len_smoothed*0.75:
-                self.difficult_rsi_phases.append(self.init_phase)
+                self.difficult_rsi_phases.append(self.init_pos)
             self.ep_len = 0
 
-
-            self.moved_distance_smooth = smooth('dist', self.env.data.qpos[0], 0.25)
+            self.moved_distance_smooth = smooth('dist', self.env.get_walked_distance(), 0.25)
 
             self.mean_abs_ep_torque_smoothed = \
                 smooth('mean_ep_tor', np.mean(self.ep_torques_abs), 0.75)
@@ -146,7 +132,7 @@ class Monitor(gym.Wrapper):
             self.ep_torques_abs = []
 
 
-        COMPARE_TRAJECS = True and not is_remote()
+        COMPARE_TRAJECS = False and not is_remote()
         if COMPARE_TRAJECS:
 
             # save sim and ref trajecs in a buffer for comparison
@@ -156,27 +142,6 @@ class Monitor(gym.Wrapper):
             self.trajecs_buffer = np.roll(self.trajecs_buffer, -1, axis=2)
             self.trajecs_buffer[0, :, -1] = sim_trajecs
             self.trajecs_buffer[1, :, -1] = ref_trajecs
-
-            if PLOT_REF_DISTRIB:
-                # load trajectory distributions if not done already
-                if self.left_step_distrib is None:
-                    from scripts.common import config as cfg
-                    npz = np.load(cfg.abs_project_path +
-                                  'assets/ref_trajecs/distributions/2d_distributions_const_speed_400hz.npz')
-                    self.left_step_distrib = [npz['means_left'], npz['stds_left']]
-                    self.right_step_distrib = [npz['means_right'], npz['stds_right']]
-                    self.step_len = min(self.left_step_distrib[0].shape[1], self.right_step_distrib[0].shape[1])
-
-                # left and right step distributions are different
-                step_dist = self.left_step_distrib if self.refs.is_step_left() else self.right_step_distrib
-
-                # get current mean on the mocap distribution, exlude com_x_pos
-                pos = min(self.refs._pos, self.step_len - 1)
-                mean_state = step_dist[0][:, pos]
-                # terminate if distance is too big
-                std_state = 3 * step_dist[1][:, pos]
-                self.trajecs_buffer[2, :, -1] = mean_state
-                self.trajecs_buffer[3, :, -1] = std_state
 
             # do the same with the dones
             self.dones_buf = np.roll(self.dones_buf, -1)
@@ -342,7 +307,7 @@ class Monitor(gym.Wrapper):
             PLOT_REWS = False
             if PLOT_REWS:
                 # add rewards and returns
-                from scripts.common.config import rew_scale, alive_bonus
+                from scripts.config.config import rew_scale, alive_bonus
                 rews = np.copy(self.rewards[-_trajec_buffer_length:])
                 rews -= alive_bonus
                 rews /= rew_scale

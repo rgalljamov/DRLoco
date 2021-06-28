@@ -1,5 +1,5 @@
 import numpy as np
-from scripts.config_light import lr_scale
+from scripts.config.config import lr_scale
 
 class Schedule(object):
     def value(self, fraction_timesteps_left):

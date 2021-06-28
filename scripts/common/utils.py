@@ -4,7 +4,15 @@ import seaborn as sns
 from os import path, getcwd
 
 def is_remote():
-    # automatically detect running PC
+    """
+    We found it useful to sometimes just shortly run the model on the local laptop,
+    e.g. for debugging or rendering the training, and for computational-heavy tasks
+    like training the agents, we use a remote machine.
+
+    This method returns True, when the scripts are executed on the remote server and False otherwise.
+    To detect the remote server, we just check for the scripts absolute path
+    which is different on both machines.
+    """
     return 'code/torch' in path.abspath(getcwd())
 
 def get_absolute_project_path():
@@ -35,12 +43,12 @@ def import_pyplot():
 
 plt = import_pyplot()
 
-PLOT_FONT_SIZE = 22
-PLOT_TICKS_SIZE = 18
+PLOT_FONT_SIZE = 24
+PLOT_TICKS_SIZE = 16
 PLOT_LINE_WIDTH = 2
 
-def config_pyplot(fig_size=0.25, font_size=PLOT_FONT_SIZE, tick_size=PLOT_TICKS_SIZE,
-                  legend_fontsize=PLOT_TICKS_SIZE+4):
+def config_pyplot(fig_size=0.25, font_size_delta=0, tick_size_delta=0,
+                  legend_fontsize_delta=0):
     """ set desired plotting settings and returns a pyplot object
      @ return: pyplot object with seaborn style and configured rcParams"""
 
@@ -49,7 +57,7 @@ def config_pyplot(fig_size=0.25, font_size=PLOT_FONT_SIZE, tick_size=PLOT_TICKS_
     # sns.set_style("ticks")
     sns.set_style("whitegrid", {'axes.edgecolor': '#ffffff00'})
 
-    change_plot_properties(font_size, legend_fontsize, tick_size)
+    change_plot_properties(font_size_delta, tick_size_delta, legend_fontsize_delta)
 
     # configure saving format and directory
     PLOT_FIGURE_SAVE_FORMAT = 'png' # 'pdf' #'eps'
@@ -70,12 +78,12 @@ def config_pyplot(fig_size=0.25, font_size=PLOT_FONT_SIZE, tick_size=PLOT_TICKS_
     return plt
 
 
-def change_plot_properties(font_size=0, tick_size=0,
-                           legend_fontsize=0, line_width=0, show_grid=True):
+def change_plot_properties(font_size_delta=0, tick_size_delta=0,
+                           legend_fontsize_delta=0, line_width=0, show_grid=True):
 
-    font_size = PLOT_FONT_SIZE + font_size
-    tick_size = PLOT_TICKS_SIZE + tick_size
-    legend_fontsize = PLOT_TICKS_SIZE + 4 + legend_fontsize
+    font_size = PLOT_FONT_SIZE + font_size_delta
+    tick_size = PLOT_TICKS_SIZE + tick_size_delta
+    legend_fontsize = PLOT_TICKS_SIZE + 4 + legend_fontsize_delta
     line_width = PLOT_LINE_WIDTH + line_width
     show_grid = True and show_grid
 
@@ -125,7 +133,7 @@ def vec_env(env_name, num_envs=4, seed=33, norm_rew=True,
     #  the same way as when we load a complete trained model.
     else:
         try:
-            from scripts.common.config import is_mod, MOD_LOAD_OBS_RMS
+            from scripts.config.hypers import is_mod, MOD_LOAD_OBS_RMS
             if not is_mod(MOD_LOAD_OBS_RMS): raise Exception
             # load the obs_rms from a previously trained model
             init_obs_rms_path = abs_project_path + \
@@ -144,7 +152,7 @@ def vec_env(env_name, num_envs=4, seed=33, norm_rew=True,
 
 def check_environment(env_name):
     from gym_mimic_envs.monitor import Monitor as EnvMonitor
-    from stable_baselines.common.env_checker import check_env
+    from stable_baselines3.common.env_checker import check_env
     env = gym.make(env_name)
     log('Checking custom environment')
     check_env(env)

@@ -1,12 +1,10 @@
 import numpy as np
-import gym
 from os.path import join, dirname
-from gym.envs.mujoco import mujoco_env
 from gym_mimic_envs.mimic_env import MimicEnv
 
-from scripts import config_light as cfgl
-from scripts.common import config as cfg
-from scripts.mocap import ref_trajecs as refs
+from scripts.config import config as cfgl
+from scripts.ref_trajecs import straight_walk_trajecs as refs
+from scripts.config import hypers as cfg
 
 # pause sim on startup to be able to change rendering speed, camera perspective etc.
 pause_mujoco_viewer_on_start = True
@@ -36,11 +34,10 @@ class MimicWalker3dEnv(MimicEnv):
 
     def __init__(self):
         # specify the name of the environment XML file
-        walker_xml = cfgl.WALKER_MJC_XML_FILE
+        walker_xml = 'walker3d_flat_feet.xml'
         # init reference trajectories
         # by specifying the indices in the mocap data to use for qpos and qvel
-        global qpos_indices, qvel_indices
-        reference_trajectories = refs.ReferenceTrajectories(qpos_indices, qvel_indices)
+        reference_trajectories = refs.StraightWalkingTrajectories(qpos_indices, qvel_indices)
         # specify absolute path to the MJCF file
         mujoco_xml_file = join(dirname(__file__), "assets", walker_xml)
         # init the mimic environment
@@ -52,36 +49,26 @@ class MimicWalker3dEnv(MimicEnv):
         self.viewer.cam.lookat[2] = 1.15
         self.viewer.cam.elevation = -20
 
-        # ----------------------------
-        # Methods we override:
-        # ----------------------------
+    # ----------------------------
+    # Methods we override:
+    # ----------------------------
 
     def _get_COM_indices(self):
-        """
-        Needed to distinguish between joint and COM kinematics.
-
-        Returns a list of indices pointing at COM joint position/index
-        in the considered robot model, e.g. [0,1,2]
-        """
         return [0,1,2]
 
     def _get_trunk_rot_joint_indices(self):
         return [3, 4, 5]
 
     def _get_not_actuated_joint_indices(self):
-        """
-        Needed for playing back reference trajectories
-        by using position servos in the actuated joints.
-
-        @returns a list of indices specifying indices of
-        joints in the considered robot model that are not actuated.
-        Example: return [0,1,2]
-        """
         return self._get_COM_indices() + [3,4,5]
 
     def _get_max_actuator_velocities(self):
         """Maximum joint velocities approximated from the reference data."""
         return np.array([5, 1, 10, 10, 5, 1, 10, 10])
+
+    def get_joint_indices_for_phase_estimation(self):
+        # return both knee and hip joints
+        return [6, 8, 10, 12]
 
     def has_ground_contact(self):
         has_contact = [False, False]

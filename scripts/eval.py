@@ -1,10 +1,11 @@
 import os.path
 import glob, wandb
 import numpy as np
+
+import scripts.config.config
 from scripts.common import utils
-from scripts.common import config as cfg
+from scripts.config import hypers as cfg
 from gym_mimic_envs.monitor import Monitor as EnvMonitor
-from gym_mimic_envs.mujoco.mimic_walker2d import MimicWalker2dEnv
 
 from stable_baselines3 import PPO
 plt = utils.import_pyplot()
@@ -42,7 +43,7 @@ def eval_model(from_config=True):
     # get model location from the config file
     if from_config:
         run_id = cfg.run_id
-        checkpoint = cfg.final_checkpoint
+        checkpoint = scripts.config.config.final_checkpoint
 
     # change save_path to specified model
     if FROM_PATH:
@@ -250,10 +251,6 @@ def record_video_OLD(model, checkpoint, all_returns, relevant_eps):
             # access the wrapped mimic environment
             mimic_env = video_env.env.venv.envs[0].env
             mimic_env.activate_evaluation()
-
-            if 'fly' in save_path:
-                mimic_env._FLY = True
-                print('flight detected')
 
             obs = video_env.reset()
 
