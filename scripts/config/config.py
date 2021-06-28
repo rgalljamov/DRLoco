@@ -7,17 +7,25 @@ DEBUG_TRAINING = False
 # determine if Pytorch should use CPU or GPU
 USE_CPU = True
 # maximum walking distance after which the episode is terminated
-MAX_WALKING_DISTANCE = 15
+MAX_WALKING_DISTANCE = 150 # testing if we really need this
 # maximum length of an episode
-MAX_EPISODE_STEPS = 3000
+MAX_EPISODE_STEPS = 1000
 
-# TODO: remove COM reward, train longer with smaller LR decay, use exp clip_range sched
 # configure Weights & Biases
-WB_PROJECT_NAME = 'no_phase'
+WB_PROJECT_NAME = 'debug_loco3d'
 # todo: definitely also try increasing the velocity reward weight
-WB_RUN_NAME = 'phase_ang, init_logstd = -1.25, rew55'
-WB_RUN_DESCRIPTION = '' \
-                     'Reduce the logstd to -1.25, instead of -0.7' \
+WB_RUN_NAME = f'straight + 512 + vel05 + rew_scale10'
+WB_RUN_DESCRIPTION = 'Training the straight walker without policy mirroring. ' \
+                     'Set max walking distance to 150m to check if we really need it. ' \
+                     'Max spisode steps reduced to 1000 as we are now training at 100Hz' \
+                     'Calculating desired velocity from 0.5 seconds of future mocaps. ' \
+                     'Scaling the reward by 100. ' \
+                     'Fixed a lot of issues in monitoring. ' \
+                     'Evaluate the model by letting it walk straight. ' \
+                     'This way, we can retain all our previous evaluation metrics. ' \
+                     'Starting training of the 2seg upper body model ' \
+                     'AND loco3d mocaps without any further adjustments.' \
+                     '' \
                      'Estimate the phase variable from the hip joint phase plot angle. ' \
                      'Use the so far best batch and minibatch sizes. ' \
                      'Implemented a custom policy so far only replicating the same properties as the MLP policy. ' \
@@ -34,25 +42,22 @@ WB_RUN_DESCRIPTION = '' \
 # -----------------------------
 
 # the registered gym environment id, e.g. 'Walker2d-v2'
-ENV_ID = 'MimicWalker3d-v0'
-# walker XML file
-WALKER_MJC_XML_FILE = 'walker3d_flat_feet.xml' # 'walker3d_flat_feet_lowmass.xml' # 'walker3d_flat_feet_40kg_140cm.xml' #
-# simulation frequency... overwrite the frequency specified in the xml file
+ENV_ID = 'MimicWalker165cm65kg-v0' # 'MimicWalker3d-v0' #
+# simulation frequency... overwrites the frequency specified in the xml file
 SIM_FREQ = 1000
 # control frequency in Hz
-CTRL_FREQ = 200
+CTRL_FREQ = {'MimicWalker3d-v0': 200,
+             'MimicWalker165cm65kg-v0': 100}[ENV_ID]
 # does the model uses joint torques (True) or target angles (False)?
+# todo: remove this flag as all our models output torque
 ENV_OUT_TORQUE = True
-# peak joint torques [hip_sag, hip_front, knee_sag, ank_sag], same for both sides
-PEAK_JOINT_TORQUES = [300]*4 # [50]*3 + [5] # [300, 300, 300, 300] #
-
 
 # -----------------------------
 # Algorithm Hyperparameters
 # -----------------------------
 
 # number of training steps = samples to collect [in Millions]
-MIO_SAMPLES = 4
+MIO_SAMPLES = 8
 # how many parallel environments should be used to collect samples
 N_PARALLEL_ENVS = 8
 # network hidden layer sizes

@@ -1,84 +1,98 @@
 '''
 Interface for environments using reference trajectories.
 '''
-import gym, mujoco_py
 import numpy as np
+import typing as typ
+import gym, mujoco_py
 from gym.envs.mujoco.mujoco_env import MujocoEnv
-from scripts.config import config as cfgl
 from scripts.config import hypers as cfg
 from scripts.common.utils import log, is_remote, \
-    exponential_running_smoothing as smooth, get_torque_ranges
-from scripts.ref_trajecs import ReferenceTrajectories as RefTrajecs
-
-
-
-# flag if ref trajectories are played back
-_play_ref_trajecs = False
+    exponential_running_smoothing as smooth
+from scripts.ref_trajecs.base_ref_trajecs import BaseReferenceTrajectories as RefTrajecs
+from mujoco_py.builder import MujocoException
 
 # pause sim on startup to be able to change rendering speed, camera perspective etc.
 pause_mujoco_viewer_on_start = True and not is_remote()
 
-# monitor episode and training duration
-step_count = 0
-ep_dur = 0
-
 class MimicEnv(MujocoEnv, gym.utils.EzPickle):
-    """ The base class to derive from to train an environment using the DeepMimic Approach."""
     def __init__(self: MujocoEnv, xml_path, ref_trajecs:RefTrajecs):
-        '''@param: self: gym environment class extending the MimicEnv class
-           @param: xml_path: path to the mujoco environment XML file
-           @param: ref_trajecs: Instance of the ReferenceTrajectory'''
+        """ The base class to derive from to train an environment using the DeepMimic Approach.
+            :param self: gym environment class extending the MimicEnv class
+            :param: xml_path: path to the mujoco environment XML file
+            :param: ref_trajecs: Instance of the ReferenceTrajectory
+        """
 
         self.refs = ref_trajecs
         # set simulation and control frequency
-        self._sim_freq, self._frame_skip = self.get_sim_freq_and_frameskip()
+        self._sim_freq, self._frame_skip = self._get_sim_freq_and_frameskip()
+        # flag required for a workaround due to MujocoEnv calling step() during initialization
+        self.finished_init = False
 
         # when we evaluate a model during or after the training,
         # we might want to weaken ET conditions or monitor and plot data
         self._EVAL_MODEL = False
         # control desired walking speed
-        self.FOLLOW_DESIRED_SPEED_PROFILE = False
+        self._FOLLOW_DESIRED_SPEED_PROFILE = False
+        # flag if ref trajectories are played back
+        self._PLAYBACK_REF_TRAJECS = False
 
         # track individual reward components
         self.pos_rew, self.vel_rew, self.com_rew = 0,0,0
-        self.mean_epret_smoothed = 0
-        # track running mean of the return and use it for ET reward
+        # track episode duration
+        self.ep_dur = 0
+        # track mean episode return for ET-reward calculation
         self.ep_rews = []
+        self.mean_epret_smoothed = 0
+        # track the so far walked distance by integrating the COM velocity vector
+        self.walked_distance = 0
+        # set the control frequency
+        self.control_freq = self._sim_freq / self._frame_skip
 
         # initialize Mujoco Environment
         MujocoEnv.__init__(self, xml_path, self._frame_skip)
         # init EzPickle (think it is required to be able to save and load models)
         gym.utils.EzPickle.__init__(self)
-        # make sure simulation and control run at the desired frequency
+        # make sure simulation runs at the desired frequency
         self.model.opt.timestep = 1 / self._sim_freq
-        self.control_freq = self._sim_freq / self._frame_skip
-        # sync reference data with the control frequency
-        self.refs.set_sampling_frequency(self.control_freq)
-        # The motor torque ranges should always be specified in the config file
-        # and overwrite the forcerange in the .MJCF file
-        self.model.actuator_forcerange[:, :] = get_torque_ranges(*cfgl.PEAK_JOINT_TORQUES)
+        # workaround for MujocoEnv calling step()
+        # during initialization without calling reset() before
+        self.finished_init = True
 
 
     def step(self, action):
         # when rendering: pause sim on startup to change rendering speed, camera perspective etc.
+        # todo: make it a constant in the config file or a constant in the mimicEnv here.
         global pause_mujoco_viewer_on_start
         if pause_mujoco_viewer_on_start:
             self._get_viewer('human')._paused = True
             pause_mujoco_viewer_on_start = False
 
-        # monitor episode and training durations
-        global step_count, ep_dur
-        step_count += 1
-        ep_dur += 1
+        # todo: the base class should have a method
+        #  called modify_actions or preprocess actions instead of this?
+        #  otherwise document, that we're rescaling actions
+        #  and add action ranges into the environment (get_action_ranges())
+        action = self._rescale_actions(action)
 
-        action = self.rescale_actions(action)
-
+        # todo: remove that after you've made sure, the simple env works as before
+        # todo: Add a static method to each environment
+        #  that allows to mirror the experiences (s,a,r,s')
         # when we're mirroring the policy (phase based mirroring), mirror the action
         if cfg.is_mod(cfg.MOD_MIRR_POLICY) and self.refs.is_step_left():
             action = self.mirror_action(action)
 
         # execute simulation with desired action for multiple steps
-        self.do_simulation(action, self._frame_skip)
+        try:
+            self.do_simulation(action, self._frame_skip)
+            # self.render()
+        # If a MuJoCo Exception is raised, catch it and reset the environment
+        except MujocoException as mex:
+            log('MuJoCo Exception catched!',
+                [f'- Episode Duration: {self.ep_dur}',
+                 f'Exception: \n {mex}'])
+            obs = self.reset()
+            return obs, 0, True, {}
+
+
 
         # increment the current position on the reference trajectories
         self.refs.next()
@@ -86,36 +100,55 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         # get state observation after simulation step
         obs = self._get_obs()
 
-        # get imitation reward
-        reward = self.get_imitation_reward()
+        # workaround due to MujocoEnv calling step() during __init__()
+        if not self.finished_init:
+            return obs, 3.33, False, {}
 
+        # increment episode duration
+        self.ep_dur += 1
+
+        # update the so far traveled distance
+        self.update_walked_distance()
+
+        # todo: add a function is_done() that can be overwritten
         # check if we entered a terminal state
-        com_z_pos = self.sim.data.qpos[self._get_COM_indices()[-1]]
-        walked_distance = self.sim.data.qpos[0]
+        com_z_pos = self.get_COM_Z_position()
         # was max episode duration or max walking distance reached?
-        max_eplen_reached = ep_dur >= cfg.ep_dur_max or walked_distance > cfg.max_distance + 0.01
+        # todo: do we really need a maximum walked distance? It is already limited by the ep_dur!
+        max_eplen_reached = self.ep_dur >= cfg.ep_dur_max or \
+                            self.walked_distance > cfg.max_distance + 0.1
         # terminate the episode?
+        # todo: should be is_done() or self.ep_dur >= cfg.ep_dur_max
         done = com_z_pos < 0.5 or max_eplen_reached
 
-        if self.is_evaluation_on():
-            done = com_z_pos < 0.5 or max_eplen_reached
-        else:
-            terminate_early, _, _, _ = self.do_terminate_early()
-            done = done or terminate_early
-            if done:
-                # if episode finished, recalculate the reward
-                # to punish falling hard and rewarding reaching episode's end a lot
-                reward = self.get_ET_reward(max_eplen_reached, terminate_early)
-
-        # reset episode duration if episode has finished
-        if done: ep_dur = 0
-        # add alive bonus else
-        else: reward += cfg.alive_bonus
+        # todo: do we need this necessarily in the simple straight walking case?
+        # terminate_early, _, _, _ = self.do_terminate_early()
+        reward = self.get_reward(done)
 
         return obs, reward, done, {}
 
+    def get_COM_Z_position(self):
+        return self.sim.data.qpos[self._get_COM_indices()[-1]]
 
-    def get_ET_reward(self, max_eplen_reached, terminate_early):
+    def update_walked_distance(self):
+        """Get the so far traveled distance by integrating the velocity vector."""
+        vel_vec = self.data.qvel[:2]
+        # avoid high velocities due to numerical issues in the simulation
+        # very roughly assuming maximum speed of about 20 km/h
+        # not considering movement direction
+        vel_vec = np.clip(vel_vec, -5.5, 5.5)
+        vel = np.linalg.norm(vel_vec)
+        self.walked_distance += vel * 1 / self.control_freq
+
+
+    def get_reward(self, done: bool):
+        """ Returns the reward of the current state.
+            :param done: is True, when episode finishes and else False"""
+        return self._get_ET_reward() if done \
+            else self.get_imitation_reward() + cfg.alive_bonus
+
+
+    def _get_ET_reward(self):
         """ Punish falling hard and reward reaching episode's end a lot. """
 
         # calculate a running mean of the ep_return
@@ -124,10 +157,11 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
         # reward reaching the end of the episode without falling
         # reward = expected cumulative future reward
+        max_eplen_reached = self.ep_dur >= cfg.ep_dur_max
         if max_eplen_reached:
             # estimate future cumulative reward expecting getting the mean reward per step
-            mean_step_rew = self.mean_epret_smoothed / ep_dur
-            act_ret_est = np.sum(mean_step_rew * np.power(cfg.gamma, np.arange(ep_dur)))
+            mean_step_rew = self.mean_epret_smoothed / self.ep_dur
+            act_ret_est = np.sum(mean_step_rew * np.power(cfg.gamma, np.arange(self.ep_dur)))
             reward = act_ret_est
         # punish for ending the episode early
         else:
@@ -135,32 +169,31 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
         return reward
 
+    def _rescale_actions(self, action):
+        """
+        Our policy samples actions from a Gaussian distribution
+        centered around 0 with an initial standard deviation of 0.5.
+        In addition, we clip the actions to the interval [-1,1].
+        Therefore, the actions have to be unnormalized, i.e
+        rescaled to the actual joint torque ranges specified in the MJCF file.
 
-    def rescale_actions(self, a):
-        """Policy samples actions from normal Gaussian distribution around 0 with init std of 0.5.
-           In this method, we rescale the actions to the actual action ranges."""
-        # policy outputs (normalized) joint torques
-        if cfg.env_out_torque:
-            # clip the actions to the range of [-1,1]
-            a = np.clip(a, -1, 1)
-            # scale the actions with joint peak torques
-            # *2: peak torques are the same for both sides
-            a *= cfgl.PEAK_JOINT_TORQUES * 2
+        :param action: action sampled from the policy
+        """
+        # clip the actions to the range of [-1,1]
+        action = np.clip(action, -1, 1)
+        # get joint peak positive (high) and negative torques (low)
+        high = self.action_space.high
+        low = self.action_space.low
+        # scale the actions with joint peak torques
+        # IMPORTANT: an action of 0 should correspond to 0 torque,
+        #   positive actions to positive torques and negative actions to negative torques
+        scaled_action = []
+        for i, a in enumerate(action):
+            scaled_action += [a * high[i] if a > 0 else np.abs(a) * low[i]]
 
-        # policy outputs target angles for PD position controllers
-        else:
-            if cfg.is_mod(cfg.MOD_PI_OUT_DELTAS):
-                # qpos of actuated joints
-                qpos_act_before_step = self.get_qpos(True, True)
-                # unnormalize the normalized deltas
-                a *= self.get_max_qpos_deltas()
-                # add the deltas to current position
-                a = qpos_act_before_step + a
-        return a
+        return np.array(scaled_action)
 
-
-
-    def get_sim_freq_and_frameskip(self):
+    def _get_sim_freq_and_frameskip(self):
         """
         What is the frequency the simulation is running at
         and how many frames should be skipped during step(action)?
@@ -228,32 +261,22 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         return low, high
 
 
-    def get_max_qpos_deltas(self):
-        """Returns the scalars needed to rescale the normalized actions from the agent."""
-        # get max allowed deviations in actuated joints
-        max_vels = self._get_max_actuator_velocities()
-        # double max deltas for better perturbation recovery. To keep balance,
-        # the agent might require to output angles that are not reachable and saturate the motors.
-        SCALE_MAX_VELS = 2
-        max_qpos_deltas = SCALE_MAX_VELS * max_vels / self.control_freq
-        return max_qpos_deltas
-
-
     def playback_ref_trajectories(self, timesteps=2000):
-        global _play_ref_trajecs
-        _play_ref_trajecs = True
+        self._PLAYBACK_REF_TRAJECS = True
 
-        from gym_mimic_envs.monitor import Monitor
-        env = Monitor(self)
+        # from gym_mimic_envs.monitor import Monitor
+        # env = Monitor(self)
 
-        env.reset()
+        self.reset()
+
         for i in range(timesteps):
             self.refs.next()
             self.set_joint_kinematics_in_sim()
-            self.sim.forward()
-            self.render()
+            for _ in range(self._frame_skip):
+                self.sim.forward()
+                self.render()
 
-        _play_ref_trajecs = False
+        self._PLAYBACK_REF_TRAJECS = False
         self.close()
         raise SystemExit('Environment intentionally closed after playing back trajectories.')
 
@@ -263,11 +286,13 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             to set the specified qpos and qvel values. """
         old_state = self.sim.get_state()
         if qpos is None or qvel is None:
-            qpos, qvel = self.refs.get_ref_kinmeatics()
+            qpos, qvel = self.refs.get_reference_trajectories()
         new_state = mujoco_py.MjSimState(old_state.time, qpos, qvel,
                                          old_state.act, old_state.udd_state)
         self.sim.set_state(new_state)
 
+    def get_walked_distance(self):
+        return self.walked_distance
 
     def activate_speed_control(self,
                                speeds: list = [1.0, 1.0],
@@ -282,7 +307,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         Hint: The desired velocity is one of the state dimensions
         and will be set from the generated trajectory in _get_obs.
         '''
-        self.FOLLOW_DESIRED_SPEED_PROFILE = True
+        self._FOLLOW_DESIRED_SPEED_PROFILE = True
 
         ### generate the speed profile
         n_profile_sections = len(speeds) - 1
@@ -301,61 +326,100 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             plt.show()
 
 
-    def estimate_phase_from_hip_joint_phase_plot(self, qpos, qvel, debug=False):
-        # estimate the phase from a phase plot of the hip joint
-        hip_sag_joint_index = 6
-        hip_pos_sag = qpos[hip_sag_joint_index]
-        hip_vel_sag = qvel[hip_sag_joint_index]
+    def estimate_phase_vars_from_joint_phase_plots(self, qpos, qvel, debug=False):
+        """
+        For a detailed description, please see the doc string of the
+        function get_joint_indices_for_phase_estimation().
+        :param qpos, qvel: current joint position and velocities of the walker
+        """
 
-        x, y = hip_pos_sag, hip_vel_sag
-        phase_angle = np.arctan2(y, x)
+        # estimate multiple phase variables from the phase plot of multiple joints
+        phases = []
+        joint_indices = self.get_joint_indices_for_phase_estimation()
 
+        # in debugging mode, use the qpos and qvel info from the ref trajecs
         if debug:
-            # collect the hip pos and vel for the phase plot
-            self.hip_pos.append(hip_pos_sag)
-            self.hip_vel.append(hip_vel_sag)
-            self.phase_angles.append(phase_angle)
+            qpos, qvel = self.refs.get_qpos(), self.refs.get_qvel()
+            # check all joints
+            # joint_indices = range(len(qpos))
 
-            if len(self.hip_pos) >= 1000:
-                from matplotlib import pyplot as plt
-                from scripts.common.utils import smooth_exponential as smooth
-                fig, subs = plt.subplots(1, 2)
+        for joint_index in joint_indices:
+            pos = qpos[joint_index]
+            vel = qvel[joint_index]
+            phase_angle = np.arctan2(vel, -pos)
+            # normalize the phase angle to the range [-1, 1]
+            phases += [phase_angle / np.pi]
+            # also add the vector length as a phase information
+            vec_norm = np.linalg.norm([pos, vel])
+            # normalize vec_norm to about [0, 1]
+            # todo: normalize to [-1, 1] by running mean and std
+            vec_norm_normed = vec_norm / 5
+            phases += [vec_norm_normed]
 
-                subs[0].plot(smooth(self.hip_pos, alpha=0.95), smooth(self.hip_vel, alpha=0.95))
-                subs[0].set_title('Hip Joint Phase Plot')
-                subs[0].set_xlabel('Angle [rad]')
-                subs[0].set_ylabel('Angular Velocity [rad/s]')
+            if debug:
+                # collect the hip pos and vel for the phase plot
+                try:self.phase_poss is None
+                except:
+                    self.phase_poss = {key: [] for key in joint_indices}
+                    self.phase_vels = {key: [] for key in joint_indices}
+                    self.phase_angles = {key: [] for key in joint_indices}
+                    self.vec_norms = {key: [] for key in joint_indices}
 
-                subs[1].plot(self.phase_angles)
-                subs[1].set_title('Hip Joint Phase Plot Angle')
-                subs[1].set_xlabel('Timesteps [1/200s]')
-                subs[0].set_ylabel('Phase Angle [rad]')
+                self.phase_poss[joint_index].append(pos)
+                self.phase_vels[joint_index].append(vel)
+                self.phase_angles[joint_index].append(phase_angle/np.pi)
+                self.vec_norms[joint_index].append(vec_norm)
 
-                plt.show()
-                exit(33)
+
+                if len(self.phase_poss[joint_index]) >= 500:
+                    from matplotlib import pyplot as plt
+                    from scripts.common.utils import smooth_exponential as smooth
+                    fig, subs = plt.subplots(1, 3)
+
+                    plt.suptitle(f'Joint: {self.refs.get_kinematic_label_at_pos(joint_index)}',
+                                 fontsize=16)
+                    subs[0].plot(smooth(self.phase_poss[joint_index], alpha=0.95),
+                                 smooth(self.phase_vels[joint_index], alpha=0.95))
+                    subs[0].set_title('Phase Plot')
+                    subs[0].set_xlabel('Angle [rad]')
+                    subs[0].set_ylabel('Angular Velocity [rad/s]')
+
+                    subs[1].plot(self.phase_angles[joint_index])
+                    subs[1].set_title('Phase Vector Angle')
+                    subs[1].set_xlabel('Timesteps [1/200s]')
+                    subs[1].set_ylabel('Phase Angle [rad]')
+
+                    subs[2].plot(self.vec_norms[joint_index])
+                    subs[2].set_title('Phase Vector Norm')
+                    subs[1].set_xlabel('Timesteps [1/200s]')
+                    plt.show()
+
+                    if joint_index == joint_indices[-1]: exit(33)
 
         # scale the phase angle to be in range [-1,1]
-        return phase_angle / np.pi
+        return phases
 
     def _get_obs(self):
         qpos, qvel = self.get_joint_kinematics()
 
-        if self.FOLLOW_DESIRED_SPEED_PROFILE:
-            i_des_speed = ep_dur % len(self.desired_walking_speed_trajectory)
+        if self._FOLLOW_DESIRED_SPEED_PROFILE:
+            i_des_speed = self.ep_dur % len(self.desired_walking_speed_trajectory)
             self.desired_walking_speed = self.desired_walking_speed_trajectory[i_des_speed]
         else:
             # TODO: during evaluation when speed control is inactive, we should just specify a constant speed
             #  when speed control is not active, set the speed to a constant value from the config
             #  During training, we still should use the step vel from the mocap!
-            self.desired_walking_speed = self.refs.get_step_velocity()
+            self.desired_walking_speed = self.refs.get_desired_walking_velocity_vector(self._EVAL_MODEL)
     
         # phase = self.refs.get_phase_variable()
-        phase = self.estimate_phase_from_hip_joint_phase_plot(qpos, qvel)
+        phases = self.estimate_phase_vars_from_joint_phase_plots(qpos, qvel)
 
-        # remove COM x position as the action should be independent of it
-        qpos = qpos[1:]
+        # remove COM X and in the 3D case also COM Y position
+        # as the action should be independent of the walkers position in space
+        # WARNING: This only applies for a blind walker on a  flat ground!
+        qpos = qpos[len(self._get_COM_indices())-1:]
 
-        obs = np.concatenate([np.array([phase, self.desired_walking_speed]), qpos, qvel]).ravel()
+        obs = np.array([*phases, *self.desired_walking_speed, *qpos, *qvel])
 
         # when we mirror the policy (phase based mirr), mirror left step
         if cfg.is_mod(cfg.MOD_MIRR_POLICY) and self.refs.is_step_left():
@@ -465,10 +529,16 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
     def reset_model(self):
 
-        self.dynamics_randomization()
+        # reset episode duration if episode has finished
+        self.ep_dur = 0
+        # reset the so far walked distance
+        self.walked_distance = 0
+
+        # self.dynamics_randomization()
 
         # get desired qpos and qvel from the refs (also include the trunk COM positions and vels)
-        qpos, qvel = self.get_init_state(not self.is_evaluation_on() and not self.FOLLOW_DESIRED_SPEED_PROFILE)
+        qpos, qvel = self.get_init_state(not self.is_evaluation_on()
+                                         and not self._FOLLOW_DESIRED_SPEED_PROFILE)
         # apply the refs kinematics to the simulation
         self.set_state(qpos, qvel)
 
@@ -486,7 +556,9 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
                 "please add sites to each corner of your walker's feet (MJCF file)!"
             lowest_foot_z_pos = np.min(foot_corner_positions[:, -1])
             # and shift the trunks COM Z position to have contact between ground and lowest foot point
-            qpos[2] -= lowest_foot_z_pos
+            qpos[self._get_COM_indices()[-1]] -= lowest_foot_z_pos
+            # also adjust the reference trajectories COM Z position
+            self.refs.adjust_COM_Z_pos(lowest_foot_z_pos)
             # set the new state with adjusted trunk COM position in the simulation
             self.set_state(qpos, qvel)
 
@@ -512,7 +584,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
 
     def get_ref_kinematics(self, exclude_com=False, concat=False):
-        qpos, qvel = self.refs.get_ref_kinmeatics()
+        qpos, qvel = self.refs.get_reference_trajectories()
         if exclude_com:
             qpos = self._remove_by_indices(qpos, self._get_COM_indices())
             qvel = self._remove_by_indices(qvel, self._get_COM_indices())
@@ -572,24 +644,25 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         pos_rew = self.get_pose_reward()
         vel_rew = self.get_vel_reward()
         com_rew = self.get_com_reward()
-        pow_rew = self.get_energy_reward() if w_pow != 0 else 0
+        # pow_rew = self.get_energy_reward() if w_pow != 0 else 0
 
         self.pos_rew, self.vel_rew, self.com_rew = pos_rew, vel_rew, com_rew
 
-        imit_rew = w_pos * pos_rew + w_vel * vel_rew + w_com * com_rew + w_pow * pow_rew
+        imit_rew = w_pos * pos_rew + w_vel * vel_rew + w_com * com_rew
 
-        return imit_rew
+        return imit_rew * cfg.rew_scale
 
 
     def do_terminate_early(self):
         """
+        CAUTION: Only makes sense in the context of straight walking!
         Early Termination based on multiple checks:
         - does the character exceeds allowed trunk angle deviations
         - does the characters COM in Z direction is below a certain point
         - does the characters COM in Y direction deviated from straight walking
         """
-        if _play_ref_trajecs:
-            return False
+        if self._PLAYBACK_REF_TRAJECS:
+            return [False]*4
 
         qpos = self.get_qpos()
         ref_qpos = self.refs.get_qpos()
@@ -615,7 +688,8 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             trunk_ang_front, trunk_ang_saggit, trunk_ang_axial = trunk_angs
             front_dev, sag_dev, ax_dev = np.abs(trunk_angs - ref_trunk_angs)
             trunk_ang_front_exceeded = front_dev > max_front_dev
-            trunk_ang_axial_exceeded = ax_dev > max_axial_dev
+            # axial deviation only required for straight walking
+            trunk_ang_axial_exceeded = False and ax_dev > max_axial_dev
             trunk_ang_sag_exceeded = trunk_ang_saggit > max_pos_sag or trunk_ang_saggit < max_neg_sag
             trunk_ang_exceeded = trunk_ang_sag_exceeded or trunk_ang_front_exceeded \
                                  or trunk_ang_axial_exceeded
@@ -657,15 +731,6 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             contact_force_norm = np.sqrt(np.sum(np.square(contact_forces)))
             print('norm contact_forces', np.round(contact_force_norm,2))
 
-
-    # ----------------------------
-    # Methods we override:
-    # ----------------------------
-
-    def close(self):
-        # calls MujocoEnv.close()
-        super().close()
-
     # ----------------------------
     # Methods to override:
     # ----------------------------
@@ -675,14 +740,33 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         Needed to distinguish between joint and COM kinematics.
 
         Returns a list of indices pointing at COM joint position/index
-        in the considered robot model, e.g. [0,1,2]
+        in the considered robot model ([i_x, i_y, i_z]), e.g. [0,1,2].
+        In case of a model walking in 2D, return [i_x, i_z].
 
         Caution: Do not include trunk rotational joints here.
         """
         raise NotImplementedError
 
     def _get_trunk_rot_joint_indices(self):
-        """ Return the indices of the rotational joints of the trunk."""
+        """ Returns the indices of the rotational joints of the trunk."""
+        raise NotImplementedError
+
+    def get_joint_indices_for_phase_estimation(self) -> typ.Iterable[int]:
+        """
+        A phase variable indicating the percentage of a step or gait cycle
+        turned out to be an important feature for learning locomotion with DRL.
+
+        During training, we can calculate the phase variable from the reference motion,
+        however when running the model, we don't have access to the phase variable any more.
+
+        An approximation to the phase variable can be obtained from the
+        phase plot of individual leg joints in the saggital plane.
+        A good joint candidate is the hip. And we believe, two hip joint phase plots
+        deliver more useful information than one. Other joints could be considered in addition, too.
+
+        This method should return a list of joint indices, specifying
+        the joints of the walker that should be used to estimate the phase variable.
+        """
         raise NotImplementedError
 
     def _get_not_actuated_joint_indices(self):
@@ -693,14 +777,6 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         @returns a list of indices specifying indices of
         joints in the considered robot model that are not actuated.
         Example: return [0,1,2]
-        """
-        raise NotImplementedError
-
-    def _get_max_actuator_velocities(self):
-        """
-        Needed to calculate the max mechanical power for the energy efficiency reward.
-        :returns: A numpy array containing the maximum absolute velocity peaks
-                  of each actuated joint. E.g. np.array([6, 12, 12, 6, 12, 12])
         """
         raise NotImplementedError
 

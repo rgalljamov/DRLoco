@@ -10,6 +10,16 @@ register(
     entry_point='gym_mimic_envs.mujoco:MimicWalker3dEnv'
 )
 
+register(
+    id='MimicWalker3dHip-v0',
+    entry_point='gym_mimic_envs.mujoco:MimicWalker3dHipEnv'
+)
+
+register(
+    id='MimicWalker165cm65kg-v0',
+    entry_point='gym_mimic_envs.mujoco:MimicWalker165cm65kgEnv'
+)
+
 """
 import gym
 

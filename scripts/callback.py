@@ -7,13 +7,14 @@ from scripts.config import hypers as cfg
 from scripts.common import utils
 from torch.utils.tensorboard import SummaryWriter
 from stable_baselines3.common.callbacks import BaseCallback
+from scripts.config.config import CTRL_FREQ, ENV_ID
 
 # define intervals/criteria for saving the model
 # save everytime the agent achieved an additional 10% of the max possible return
-MAX_RETURN = cfg.ep_dur_max * 1
+MAX_RETURN = cfg.ep_dur_max * 1 * cfg.rew_scale
 EP_RETURN_INCREMENT = 0.1 * MAX_RETURN
 # 10% of max possible reward
-MEAN_REW_INCREMENT = 0.1
+MEAN_REW_INCREMENT = 0.1 * cfg.rew_scale
 
 # define evaluation interval
 EVAL_MORE_FREQUENT_THRES = 3.2e6
@@ -282,7 +283,7 @@ class TrainingMonitor(BaseCallback):
             utils.save_model(self.model, cfg.save_path, checkpoint, full=False)
 
         # load the evaluation environment
-        eval_env = utils.load_env(checkpoint, cfg.save_path, cfg.env_id)
+        eval_env = utils.load_env(checkpoint, cfg.save_path, ENV_ID)
         mimic_env = eval_env.venv.envs[0].env
         mimic_env.activate_evaluation()
 
@@ -305,13 +306,13 @@ class TrainingMonitor(BaseCallback):
                     moved_distances.append(walked_distance)
                     mean_rewards.append(np.mean(rewards))
                     ep_durs.append(ep_dur)
-                    mean_com_x_vel = walked_distance/(ep_dur/cfg.CTRL_FREQ)
+                    mean_com_x_vel = walked_distance / (ep_dur / cfg.CTRL_FREQ)
                     mean_com_x_vels.append(mean_com_x_vel)
                     break
                 else:
-                    # we cannot get the walked distance after episode termination,
-                    # as when done=True is returned, the env was already reseted.
-                    walked_distance = mimic_env.data.qpos[0]
+                    # we cannot get the reward or walked distance after episode termination,
+                    # as when done=True is returned, the env is already resetted.
+                    walked_distance = mimic_env.get_walked_distance()
                     # undo reward normalization, don't save last reward
                     reward = reward * np.sqrt(eval_env.ret_rms.var + 1e-8)
                     rewards.append(reward[0])

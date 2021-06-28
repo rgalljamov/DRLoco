@@ -22,12 +22,13 @@ def init_wandb(model):
     batch_size = model.n_steps * model.n_envs
     params = {
         "path": cfg.save_path,
+        "env_id": cfgl.ENV_ID,
         "mod": cfg.modification,
         "ctrl_freq": cfg.CTRL_FREQ,
         "lr0": cfg.lr_start,
         "lr1": cfg.lr_final,
         'hid_sizes': cfg.hid_layer_sizes,
-        'peak_joint_torques': cfg.peak_joint_torques,
+        # 'peak_joint_torques': cfg.peak_joint_torques,
         'walker_xml_file': cfg.walker_xml_file,
         "noptepochs": cfg.noptepochs,
         "batch_size": batch_size,
@@ -42,7 +43,6 @@ def init_wandb(model):
         "logstd": cfg.init_logstd,
         # "min_logstd": LOG_STD_MIN,
         # "max_logstd": LOG_STD_MAX,
-        "env": cfg.env_abbrev,
         "gam": model.gamma,
         "lam": model.gae_lambda,
         "n_envs": model.n_envs,
@@ -55,10 +55,6 @@ def init_wandb(model):
         "clip0": cfg.clip_start,
         "clip1": cfg.clip_end,
         }
-
-    if cfg.is_mod(cfg.MOD_REFS_RAMP):
-        params['skip_n_steps'] = cfg.SKIP_N_STEPS
-        params['steps_per_vel'] = cfg.STEPS_PER_VEL
 
     wandb.init(config=params, sync_tensorboard=True, name=cfgl.WB_RUN_NAME,
                project=cfgl.WB_PROJECT_NAME, notes=cfgl.WB_RUN_DESCRIPTION)
@@ -75,7 +71,7 @@ def train():
         os.makedirs(cfg.save_path + 'envs')
 
     # setup environment
-    env = utils.vec_env(cfg.env_id, norm_rew=True, num_envs=cfg.n_envs)
+    env = utils.vec_env(cfgl.ENV_ID, norm_rew=True, num_envs=cfg.n_envs)
 
     # setup model/algorithm
     training_timesteps = int(cfg.mio_samples * 1e6)
