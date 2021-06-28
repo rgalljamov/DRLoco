@@ -5,8 +5,8 @@ sys.path.append(getcwd())
 
 import numpy as np
 import torch as th
-from scripts.common import utils
-from scripts.config import config as cfg
+from drloco.common import utils
+from drloco.config import config as cfg
 
 # todo: move to train.py
 # make torch using the CPU instead of the GPU by default
@@ -108,5 +108,5 @@ save_path_norun= utils.get_absolute_project_path() + 'models/' + _mod_path
 save_path = save_path_norun + f'{run_id}/'
 
 if __name__ == '__main__':
-    from scripts.train import train
+    from drloco.train import train
     train()

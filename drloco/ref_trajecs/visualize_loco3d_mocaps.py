@@ -1,9 +1,9 @@
 import numpy as np
 import scipy.io as spio
 import seaborn as sns
-from scripts.common import utils
+from drloco.common import utils
 from matplotlib import pyplot as plt
-from scripts.common.utils import get_absolute_project_path
+from drloco.common.utils import get_absolute_project_path
 
 # plt = utils.config_pyplot(font_size=0, tick_size=0, legend_fontsize=0)
 # plt.rcParams.update({'figure.autolayout': False})

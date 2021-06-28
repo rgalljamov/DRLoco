@@ -9,9 +9,9 @@ Script to handle reference trajectories.
 import random
 import numpy as np
 import scipy.io as spio
-from scripts.ref_trajecs.base_ref_trajecs import BaseReferenceTrajectories
-from scripts.config.hypers import is_mod, MOD_REFS_RAMP, EVAL_N_TIMES
-from scripts.common.utils import log, is_remote, config_pyplot, smooth_exponential, \
+from drloco.ref_trajecs.base_ref_trajecs import BaseReferenceTrajectories
+from drloco.config.hypers import is_mod, MOD_REFS_RAMP, EVAL_N_TIMES
+from drloco.common.utils import log, is_remote, config_pyplot, smooth_exponential, \
     get_absolute_project_path
 
 

@@ -1,7 +1,7 @@
 import gym
 import numpy as np
 import seaborn as sns
-from scripts.common.utils import config_pyplot, is_remote, \
+from drloco.common.utils import config_pyplot, is_remote, \
     exponential_running_smoothing as smooth, change_plot_properties
 from gym_mimic_envs.mimic_env import MimicEnv
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecNormalize
@@ -307,7 +307,7 @@ class Monitor(gym.Wrapper):
             PLOT_REWS = False
             if PLOT_REWS:
                 # add rewards and returns
-                from scripts.config.config import rew_scale, alive_bonus
+                from drloco.config.config import rew_scale, alive_bonus
                 rews = np.copy(self.rewards[-_trajec_buffer_length:])
                 rews -= alive_bonus
                 rews /= rew_scale

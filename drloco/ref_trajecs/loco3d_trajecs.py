@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.io as spio
-from scripts.common.utils import get_absolute_project_path
-from scripts.ref_trajecs.base_ref_trajecs import BaseReferenceTrajectories
+from drloco.common.utils import get_absolute_project_path
+from drloco.ref_trajecs.base_ref_trajecs import BaseReferenceTrajectories
 
 # create index constants for easier access to specific reference trajectory parts
 PELVIS_TILT, PELVIS_LIST, PELVIS_ROTATION = range(0,3)
@@ -24,7 +24,7 @@ class Loco3dReferenceTrajectories(BaseReferenceTrajectories):
         # the mocaps were sampled with 500Hz
         sampling_frequency = 500
         # for control frequency, use the one specified in the config file
-        from scripts.config.config import CTRL_FREQ
+        from drloco.config.config import CTRL_FREQ
         control_frequency = CTRL_FREQ
         # initialize the base class
         super(Loco3dReferenceTrajectories, self).__init__(sampling_frequency,

@@ -1,7 +1,7 @@
 from os.path import join, dirname
 from gym_mimic_envs.mimic_env import MimicEnv
-import scripts.ref_trajecs.loco3d_trajecs as refs
-from scripts.ref_trajecs.straight_walk_hip3d_trajecs import StraightWalking3dHipTrajectories
+import drloco.ref_trajecs.loco3d_trajecs as refs
+from drloco.ref_trajecs.straight_walk_hip3d_trajecs import StraightWalking3dHipTrajectories
 from gym_mimic_envs.mujoco.mimic_walker3d import MimicWalker3dEnv, qpos_indices, qvel_indices
 
 # specify which joint trajectories are required for the current walker

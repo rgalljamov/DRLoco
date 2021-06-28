@@ -3,11 +3,11 @@ import numpy as np
 import wandb
 
 from stable_baselines3 import PPO
-from scripts.config import hypers as cfg
-from scripts.common import utils
+from drloco.config import hypers as cfg
+from drloco.common import utils
 from torch.utils.tensorboard import SummaryWriter
 from stable_baselines3.common.callbacks import BaseCallback
-from scripts.config.config import CTRL_FREQ, ENV_ID
+from drloco.config.config import CTRL_FREQ, ENV_ID
 
 # define intervals/criteria for saving the model
 # save everytime the agent achieved an additional 10% of the max possible return

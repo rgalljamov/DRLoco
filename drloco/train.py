@@ -3,19 +3,19 @@ import wandb
 
 import torch as th
 
-import scripts.config.config
-from scripts import eval
-from scripts.config import config as cfgl
-from scripts.config import hypers as cfg
-from scripts.common import utils
-from scripts.common.schedules import LinearDecay, ExponentialSchedule
-from scripts.callback import TrainingMonitor
-# from scripts.common.distributions import LOG_STD_MIN, LOG_STD_MAX
+import drloco.config.config
+from drloco import eval
+from drloco.config import config as cfgl
+from drloco.config import hypers as cfg
+from drloco.common import utils
+from drloco.common.schedules import LinearDecay, ExponentialSchedule
+from drloco.callback import TrainingMonitor
+# from drloco.common.distributions import LOG_STD_MIN, LOG_STD_MAX
 
-# from scripts.algos.custom_ppo2 import CustomPPO2
+# from drloco.algos.custom_ppo2 import CustomPPO2
 from stable_baselines3 import PPO
 from stable_baselines3.ppo.policies import MlpPolicy
-from scripts.custom.policies import CustomActorCriticPolicy
+from drloco.custom.policies import CustomActorCriticPolicy
 
 
 def init_wandb(model):
@@ -108,13 +108,13 @@ def train():
 
     # save model and weights before training
     if not cfg.DEBUG:
-        utils.save_model(model, cfg.save_path, scripts.config.config.init_checkpoint)
+        utils.save_model(model, cfg.save_path, drloco.config.config.init_checkpoint)
 
     # train model
     model.learn(total_timesteps=training_timesteps, callback=TrainingMonitor())
 
     # save model after training
-    utils.save_model(model, cfg.save_path, scripts.config.config.final_checkpoint)
+    utils.save_model(model, cfg.save_path, drloco.config.config.final_checkpoint)
 
     # close environment
     env.close()

@@ -12,9 +12,9 @@ import gym, time, mujoco_py
 import gym_mimic_envs
 from gym_mimic_envs.monitor import Monitor
 from stable_baselines3 import PPO
-from scripts.common.utils import load_env, get_absolute_project_path
-from scripts.config import hypers as cfg
-from scripts.config import config as cfgl
+from drloco.common.utils import load_env, get_absolute_project_path
+from drloco.config import hypers as cfg
+from drloco.config import config as cfgl
 
 # paths
 # PD baseline

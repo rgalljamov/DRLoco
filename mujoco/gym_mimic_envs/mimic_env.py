@@ -5,10 +5,10 @@ import numpy as np
 import typing as typ
 import gym, mujoco_py
 from gym.envs.mujoco.mujoco_env import MujocoEnv
-from scripts.config import hypers as cfg
-from scripts.common.utils import log, is_remote, \
+from drloco.config import hypers as cfg
+from drloco.common.utils import log, is_remote, \
     exponential_running_smoothing as smooth
-from scripts.ref_trajecs.base_ref_trajecs import BaseReferenceTrajectories as RefTrajecs
+from drloco.ref_trajecs.base_ref_trajecs import BaseReferenceTrajectories as RefTrajecs
 from mujoco_py.builder import MujocoException
 
 # pause sim on startup to be able to change rendering speed, camera perspective etc.
@@ -373,7 +373,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
                 if len(self.phase_poss[joint_index]) >= 500:
                     from matplotlib import pyplot as plt
-                    from scripts.common.utils import smooth_exponential as smooth
+                    from drloco.common.utils import smooth_exponential as smooth
                     fig, subs = plt.subplots(1, 3)
 
                     plt.suptitle(f'Joint: {self.refs.get_kinematic_label_at_pos(joint_index)}',

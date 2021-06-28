@@ -2,9 +2,9 @@ import os.path
 import glob, wandb
 import numpy as np
 
-import scripts.config.config
-from scripts.common import utils
-from scripts.config import hypers as cfg
+import drloco.config.config
+from drloco.common import utils
+from drloco.config import hypers as cfg
 from gym_mimic_envs.monitor import Monitor as EnvMonitor
 
 from stable_baselines3 import PPO
@@ -43,7 +43,7 @@ def eval_model(from_config=True):
     # get model location from the config file
     if from_config:
         run_id = cfg.run_id
-        checkpoint = scripts.config.config.final_checkpoint
+        checkpoint = drloco.config.config.final_checkpoint
 
     # change save_path to specified model
     if FROM_PATH:

@@ -133,7 +133,7 @@ def vec_env(env_name, num_envs=4, seed=33, norm_rew=True,
     #  the same way as when we load a complete trained model.
     else:
         try:
-            from scripts.config.hypers import is_mod, MOD_LOAD_OBS_RMS
+            from drloco.config.hypers import is_mod, MOD_LOAD_OBS_RMS
             if not is_mod(MOD_LOAD_OBS_RMS): raise Exception
             # load the obs_rms from a previously trained model
             init_obs_rms_path = abs_project_path + \

@@ -1,5 +1,5 @@
 from wandb.data_struct import Approach
-from scripts.common.utils import config_pyplot, change_plot_properties
+from drloco.common.utils import config_pyplot, change_plot_properties
 
 import numpy as np
 

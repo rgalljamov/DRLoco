@@ -1,5 +1,5 @@
 from wandb.wandb_api import Api
-from scripts.common import utils
+from drloco.common import utils
 import numpy as np
 import os
 
@@ -69,7 +69,7 @@ class Approach:
         metrics_path = self.path + 'metrics.npz'
         data_is_on_disc = os.path.exists(metrics_path)
         if data_is_on_disc:
-            from scripts.callback import EVAL_INTERVAL_RARE
+            from drloco.callback import EVAL_INTERVAL_RARE
             self.metrics = []
             npz = np.load(metrics_path)
             for metric_label in npz.keys():
