@@ -54,7 +54,7 @@ This page guides you through the installation process to get up and running with
     	.. important:: It is important to **not** use *sudo* during installation!
 
 
-#. Change :func:`is_remote` in ``scripts/common/utils.py``. Please refer to this function's doc-string for more details.
+#. [OPTIONAL] If you want to distinguish between running your code on a weak local laptop and running it on a powerful remote server, adapt :func:`is_remote` in ``scripts/common/utils.py``. Please refer to this function's doc-string for more details.
 
 #. To check if installation was successful, run the script ``scripts/run.py``. To run the script from command line, use:
 

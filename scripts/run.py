@@ -2,6 +2,11 @@
 Loads a specified model (by path or from config) and executes it.
 The policy can be used sarcastically and deterministically.
 """
+# add current working directory to the system path
+import sys
+from os import getcwd
+sys.path.append(getcwd())
+
 import gym, time, mujoco_py
 # necessary to import custom gym environments
 import gym_mimic_envs
