@@ -1,23 +1,8 @@
-# add current working directory to the system path 
 import sys
-from os import getcwd
-sys.path.append(getcwd())
-
 import numpy as np
 import torch as th
 from drloco.common import utils
 from drloco.config import config as cfg
-
-# todo: move to train.py
-# make torch using the CPU instead of the GPU by default
-if cfg.USE_CPU:
-    from os import environ
-    # fool python to think there is no CUDA device
-    environ["CUDA_VISIBLE_DEVICES"]=""
-    # to avoid massive slow-down when using torch with cpu
-    import torch
-    n_envs = cfg.N_PARALLEL_ENVS
-    torch.set_num_threads(n_envs if n_envs<=16 else 8)
 
 def is_mod(mod_str):
     '''Simple check if a certain modification to the baseline algorithm is used,
@@ -44,15 +29,14 @@ MOD_MIRR_POLICY = 'mirr_py'
 
 # ------------------
 
-# todo: directly access these constants from the config file
-SIM_FREQ = cfg.SIM_FREQ
-CTRL_FREQ = cfg.CTRL_FREQ
-
 # todo: change all modifications to simple flags
 # specify modifications to the baseline algorithm, e.g. mirroring policy
 modifications_list = [MOD_CUSTOM_POLICY]
 modification = '/'.join(modifications_list)
 
+assert not is_mod(MOD_MIRR_POLICY), \
+    'Mirroring Policy can only be used with the StraightWalker. ' \
+    'AND only after changing the mirroring functions! '
 # ----------------------------------------------------------------------------------
 # Weights and Biases
 # ----------------------------------------------------------------------------------
@@ -60,8 +44,7 @@ DEBUG = cfg.DEBUG_TRAINING or not sys.gettrace() is None
 MAX_DEBUG_STEPS = int(2e4) # stop training thereafter!
 
 rew_weights = '8200'
-# should that really matter? I think not
-ent_coef = {100: -0.0075, 200: -0.0075, 400: -0.00375}[CTRL_FREQ]
+ent_coef = -0.0075
 init_logstd = -0.7
 # todo: put all cliprange settings in the same short block
 cliprange = 0.15
@@ -70,13 +53,10 @@ clip_start = 0.55 if is_mod(MOD_CLIPRANGE_SCHED) else cliprange
 clip_end = 0.1 if is_mod(MOD_CLIPRANGE_SCHED) else cliprange
 clip_exp_slope = 5
 
-# just for logging to wandb
-walker_xml_file = cfg.ENV_ID
-
 hid_layer_sizes = cfg.hid_layer_sizes
 activation_fns = [th.nn.Tanh]*2
-gamma = {50:0.99, 100: 0.99, 200:0.995, 400:0.998}[CTRL_FREQ]
-rew_scale = 10
+gamma = {50:0.99, 100: 0.99, 200:0.995, 400:0.998}[cfg.CTRL_FREQ]
+rew_scale = 1
 alive_bonus = 0.2 * rew_scale
 # number of episodes per model evaluation
 EVAL_N_TIMES = 20

@@ -342,7 +342,7 @@ class StraightWalkingTrajectories(BaseReferenceTrajectories):
         """
 
         # increase the step index, reset if last step was reached
-        if self._i_step >= len(self.data):
+        if self._i_step >= len(self.data) - 1:
             self.has_reached_last_step = True
             # reset to the step with the correct foot
             self._i_step = 0 if self._i_step in self.left_step_indices else 1

@@ -5,6 +5,7 @@ import numpy as np
 import typing as typ
 import gym, mujoco_py
 from gym.envs.mujoco.mujoco_env import MujocoEnv
+from drloco.config import config as cfgl
 from drloco.config import hypers as cfg
 from drloco.common.utils import log, is_remote, \
     exponential_running_smoothing as smooth
@@ -198,12 +199,12 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         What is the frequency the simulation is running at
         and how many frames should be skipped during step(action)?
         """
-        skip_n_frames = cfg.SIM_FREQ/cfg.CTRL_FREQ
+        skip_n_frames = cfgl.SIM_FREQ/cfgl.CTRL_FREQ
         assert skip_n_frames.is_integer(), \
             f"Please check the simulation and control frequency in the config! " \
             f"The simulation frequency should be an integer multiple of the control frequency." \
             f"Your simulation frequency is {cfg.SIM_FREQ} and control frequency is {cfg.CTRL_FREQ}"
-        return cfg.SIM_FREQ, int(skip_n_frames)
+        return cfgl.SIM_FREQ, int(skip_n_frames)
 
     def get_joint_kinematics(self, exclude_com=False, concat=False):
         '''Returns qpos and qvel of the agent.'''

@@ -5,7 +5,6 @@ import numpy as np
 import drloco.config.config
 from drloco.common import utils
 from drloco.config import hypers as cfg
-from gym_mimic_envs.monitor import Monitor as EnvMonitor
 
 from stable_baselines3 import PPO
 plt = utils.import_pyplot()

@@ -108,7 +108,7 @@ class TrainingMonitor(BaseCallback):
         mean_rew = self.get_mean('mean_reward_smoothed')
 
         # avoid logging data during first episode
-        if ep_len < {400: 60, 200:30, 50:8, 100:15}[cfg.CTRL_FREQ]:
+        if ep_len < {400: 60, 200:30, 50:8, 100:15}[CTRL_FREQ]:
             return True
 
         if not cfg.DEBUG: self.log_to_tb(mean_rew, ep_len, ep_ret)
@@ -142,13 +142,13 @@ class TrainingMonitor(BaseCallback):
         moved_distance = self.get_mean('moved_distance_smooth')
         mean_abs_torque_smoothed = self.get_mean('mean_abs_ep_torque_smoothed')
 
-        self.log_scalar('_det_eval/1. Summary Score', self.summary_score),
-        self.log_scalar('_det_eval/2. stable walks count', self.count_stable_walks),
-        self.log_scalar('_det_eval/4. mean eval distance', self.mean_walked_distance),
-        self.log_scalar('_det_eval/5. MIN eval distance', self.min_walked_distance),
-        self.log_scalar('_det_eval/3. mean step reward', self.mean_reward_means),
-        self.log_scalar('_det_eval/6. mean episode duration', self.mean_episode_duration),
-        self.log_scalar('_det_eval/7. mean walking speed', self.mean_walking_speed),
+        self.log_scalar('_det_eval/1. Summary Score []', self.summary_score),
+        self.log_scalar('_det_eval/2. stable walks count []', self.count_stable_walks),
+        self.log_scalar('_det_eval/4. mean eval distance [m]', self.mean_walked_distance),
+        self.log_scalar('_det_eval/5. MIN eval distance [m]', self.min_walked_distance),
+        self.log_scalar('_det_eval/3. mean step reward [%]', self.mean_reward_means),
+        self.log_scalar('_det_eval/6. mean episode duration [%]', self.mean_episode_duration),
+        self.log_scalar('_det_eval/7. mean walking speed [m/s]', self.mean_walking_speed),
 
         self.log_scalar('_train/1. moved distance (stochastic, smoothed 0.25)',
                          moved_distance/cfg.max_distance),
@@ -306,7 +306,7 @@ class TrainingMonitor(BaseCallback):
                     moved_distances.append(walked_distance)
                     mean_rewards.append(np.mean(rewards))
                     ep_durs.append(ep_dur)
-                    mean_com_x_vel = walked_distance / (ep_dur / cfg.CTRL_FREQ)
+                    mean_com_x_vel = walked_distance / (ep_dur / CTRL_FREQ)
                     mean_com_x_vels.append(mean_com_x_vel)
                     break
                 else:

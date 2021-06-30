@@ -97,7 +97,7 @@ def change_plot_properties(font_size_delta=0, tick_size_delta=0,
     return font_size, tick_size, legend_fontsize
 
 
-def vec_env(env_name, num_envs=4, seed=33, norm_rew=True,
+def vec_env(env_id, num_envs=4, seed=33, norm_rew=True,
             load_path=None):
     '''creates environments, vectorizes them and sets different seeds
     :param norm_rew: reward should only be normalized during training
@@ -106,11 +106,13 @@ def vec_env(env_name, num_envs=4, seed=33, norm_rew=True,
     :returns: VecNormalize (wrapped Subproc- or Dummy-VecEnv) '''
 
     from drloco.mujoco.mimic_env import MimicEnv
-    from gym_mimic_envs.monitor import Monitor as EnvMonitor
+    from drloco.mujoco.monitor_wrapper import Monitor as EnvMonitor
+    from drloco.mujoco.config import env_map
 
-    def make_env_func(env_name, seed, rank):
+    def make_env_func(seed, rank):
         def make_env():
-            env = gym.make(env_name)
+            # env = gym.make(env_name)
+            env = env_map[env_id]()
             env.seed(seed + rank * 100)
             if isinstance(env, MimicEnv):
                 # wrap a MimicEnv in the EnvMonitor
@@ -120,40 +122,23 @@ def vec_env(env_name, num_envs=4, seed=33, norm_rew=True,
         return make_env
 
     if num_envs == 1:
-        vec_env = DummyVecEnv([make_env_func(env_name, seed, 0)])
+        vec_env = DummyVecEnv([make_env_func(seed, 0)])
     else:
-        env_fncts = [make_env_func(env_name, seed, rank) for rank in range(num_envs)]
+        env_fncts = [make_env_func(seed, rank) for rank in range(num_envs)]
         vec_env = SubprocVecEnv(env_fncts)
 
-    # normalize environments
+    # normalize the observations and rewards of the environment
     # if a load_path was specified, load the running mean and std of obs and rets from this path
     if load_path is not None:
         vec_normed = VecNormalize.load(load_path, vec_env)
-    # todo: think the whole else statement can be deleted.
-    #  In case, we want to load obs_rms from an earlier run,
-    #  we should be able to do it by just specifying a load_path...
-    #  the same way as when we load a complete trained model.
     else:
-        try:
-            from drloco.config.hypers import is_mod, MOD_LOAD_OBS_RMS
-            if not is_mod(MOD_LOAD_OBS_RMS): raise Exception
-            # load the obs_rms from a previously trained model
-            init_obs_rms_path = abs_project_path + \
-                                'models/behav_clone/models/rms/env_999'
-            vec_normed = VecNormalize.load(init_obs_rms_path, vec_env)
-            log('Successfully loaded OBS_RMS from a previous model:',
-                [f'file:\t {init_obs_rms_path}',
-                 f'mean:\t {vec_normed.obs_rms.mean}',
-                 f'var:\t {vec_normed.obs_rms.var}'])
-        except:
-            log('Do NOT loading obs_rms from a previous run.')
-            vec_normed = VecNormalize(vec_env, norm_obs=True, norm_reward=norm_rew)
+        vec_normed = VecNormalize(vec_env, norm_obs=True, norm_reward=norm_rew)
 
     return vec_normed
 
 
 def check_environment(env_name):
-    from gym_mimic_envs.monitor import Monitor as EnvMonitor
+    from drloco.mujoco.monitor_wrapper import Monitor as EnvMonitor
     from stable_baselines3.common.env_checker import check_env
     env = gym.make(env_name)
     log('Checking custom environment')

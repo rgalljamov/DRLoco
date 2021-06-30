@@ -1,3 +1,9 @@
+# add current working directory to the system path
+import sys
+from os import getcwd
+sys.path.append(getcwd())
+
+# import required modules
 import os.path
 import wandb
 
@@ -10,26 +16,34 @@ from drloco.config import hypers as cfg
 from drloco.common import utils
 from drloco.common.schedules import LinearDecay, ExponentialSchedule
 from drloco.callback import TrainingMonitor
-# from drloco.common.distributions import LOG_STD_MIN, LOG_STD_MAX
 
-# from drloco.algos.custom_ppo2 import CustomPPO2
 from stable_baselines3 import PPO
 from stable_baselines3.ppo.policies import MlpPolicy
 from drloco.custom.policies import CustomActorCriticPolicy
 
+# todo: move to utils? Or is it ok here,
+#  as it is all about training which is train.py is all about too : )
+def use_cpu():
+    from os import environ
+    # fool python to think there is no CUDA device
+    environ["CUDA_VISIBLE_DEVICES"] = ""
+    # to avoid massive slow-down when using torch with cpu
+    import torch
+    n_envs = cfgl.N_PARALLEL_ENVS
+    torch.set_num_threads(n_envs if n_envs <= 16 else 8)
 
+
+# todo: move to utils
 def init_wandb(model):
     batch_size = model.n_steps * model.n_envs
     params = {
         "path": cfg.save_path,
         "env_id": cfgl.ENV_ID,
         "mod": cfg.modification,
-        "ctrl_freq": cfg.CTRL_FREQ,
         "lr0": cfg.lr_start,
         "lr1": cfg.lr_final,
         'hid_sizes': cfg.hid_layer_sizes,
         # 'peak_joint_torques': cfg.peak_joint_torques,
-        'walker_xml_file': cfg.walker_xml_file,
         "noptepochs": cfg.noptepochs,
         "batch_size": batch_size,
         "cfg.batch_size": cfg.batch_size,
@@ -61,6 +75,10 @@ def init_wandb(model):
 
 
 def train():
+
+    # make torch using the CPU instead of the GPU by default
+    if cfgl.USE_CPU:
+        use_cpu()
 
     # create model directories
     if not os.path.exists(cfg.save_path):
