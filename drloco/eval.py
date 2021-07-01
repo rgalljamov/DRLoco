@@ -152,24 +152,18 @@ def eval_model(from_config=True):
 def record_video(model, checkpoint, all_returns, relevant_eps):
     utils.log("Preparing video recording!")
 
-    import pyvirtualdisplay
-
-    # Creates a virtual display for OpenAI gym
-    pyvirtualdisplay.Display(visible=1, size=(1400, 900)).start()
-
-    # import the video recorder
-    from stable_baselines3.common.vec_env import VecVideoRecorder
-
-    env_id = cfg.env_id
+    if utils.is_remote():
+        import pyvirtualdisplay
+        # Creates a virtual display for OpenAI gym
+        pyvirtualdisplay.Display(visible=0, size=(1400, 900)).start()
 
     import gym
-    from stable_baselines3.common.vec_env import VecVideoRecorder, DummyVecEnv
-    env = DummyVecEnv([lambda: gym.make(env_id)])
+    from stable_baselines3.common.vec_env import VecVideoRecorder
 
     # load the environment
-    # env = utils.load_env(checkpoint, cfg.save_path, cfg.env_id)
-    # mimic_env = env.venv.envs[0].env
-    # mimic_env.activate_evaluation()
+    env = utils.load_env(checkpoint, cfg.save_path, cfg.env_id)
+    mimic_env = env.venv.envs[0].env
+    mimic_env.activate_evaluation()
 
     # build the video path
     pi_string = 'determin' if DETERMINISTIC_ACTIONS else 'stochastic'
