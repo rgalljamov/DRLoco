@@ -2,10 +2,10 @@ import os.path
 import glob, wandb
 import numpy as np
 
-import scripts.config.config
-from scripts.common import utils
-from scripts.config import hypers as cfg
-from gym_mimic_envs.monitor import Monitor as EnvMonitor
+import drloco.config.config
+import drloco.train
+from drloco.common import utils
+from drloco.config import hypers as cfg
 
 from stable_baselines3 import PPO
 plt = utils.import_pyplot()
@@ -20,36 +20,20 @@ PATH = "/mnt/88E4BD3EE4BD2EF6/Masters/M.Sc. Thesis/Code/models/dmm/mirr_exps/cst
        "mim3d/8envs/ppo2/1.0mio/672-evaled-ret-12901"
 if not PATH.endswith('/'): PATH += '/'
 
-# which model should be evaluated
-run_id = 672
-checkpoint =  '999' # 'mean_rew60_12M' # 'ep_ret5500' # 999
-
 # evaluate for n episodes
 n_eps = 10
 # how many actions to record in each episode
 rec_n_steps = 1000
 
-def eval_model(from_config=True):
-    """@:param from_config: if true, reloads the run_id from config file
-                before evaluation (for direct eval after training).
-                If false, uses the id specified in this script. """
+def eval_model(run_id, checkpoint):
 
-    print('\n---------------------------\n'
-              'MODEL EVALUATION STARTED'
-          '\n---------------------------\n')
-
-    global run_id, checkpoint
-
-    # get model location from the config file
-    if from_config:
-        run_id = cfg.run_id
-        checkpoint = scripts.config.config.final_checkpoint
+    utils.log('MODEL EVALUATION STARTED')
 
     # change save_path to specified model
     if FROM_PATH:
         save_path = PATH
     else:
-        save_path = cfg.save_path_norun + f'{run_id}/'
+        save_path = cfg.save_path
 
     env = utils.load_env(checkpoint, save_path, cfg.env_id)
     mimic_env = env.venv.envs[0]
@@ -153,24 +137,18 @@ def eval_model(from_config=True):
 def record_video(model, checkpoint, all_returns, relevant_eps):
     utils.log("Preparing video recording!")
 
-    import pyvirtualdisplay
-
-    # Creates a virtual display for OpenAI gym
-    pyvirtualdisplay.Display(visible=1, size=(1400, 900)).start()
-
-    # import the video recorder
-    from stable_baselines3.common.vec_env import VecVideoRecorder
-
-    env_id = cfg.env_id
+    if utils.is_remote():
+        import pyvirtualdisplay
+        # Creates a virtual display for OpenAI gym
+        pyvirtualdisplay.Display(visible=0, size=(1400, 900)).start()
 
     import gym
-    from stable_baselines3.common.vec_env import VecVideoRecorder, DummyVecEnv
-    env = DummyVecEnv([lambda: gym.make(env_id)])
+    from stable_baselines3.common.vec_env import VecVideoRecorder
 
     # load the environment
-    # env = utils.load_env(checkpoint, cfg.save_path, cfg.env_id)
-    # mimic_env = env.venv.envs[0].env
-    # mimic_env.activate_evaluation()
+    env = utils.load_env(checkpoint, cfg.save_path, cfg.env_id)
+    mimic_env = env.venv.envs[0].env
+    mimic_env.activate_evaluation()
 
     # build the video path
     pi_string = 'determin' if DETERMINISTIC_ACTIONS else 'stochastic'
@@ -220,7 +198,7 @@ def record_video_OLD(model, checkpoint, all_returns, relevant_eps):
     if FROM_PATH:
         save_path = PATH
     else:
-        save_path = cfg.save_path_norun + f'{run_id}/'
+        save_path = cfg.save_path
     env = utils.load_env(checkpoint, save_path, cfg.env_id)
     obs = env.reset()
 
@@ -296,8 +274,7 @@ def has_fallen(mimic_env):
 
 
 if __name__ == "__main__":
-    eval_model(from_config=False)
-
+    pass
 # eval.py was called from another script
 else:
     RENDER = False

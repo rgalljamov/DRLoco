@@ -5,8 +5,8 @@ import gym
 import torch as th
 from torch import nn
 
-from scripts.config import hypers
-from scripts.common.utils import log
+from drloco.config import hypers
+from drloco.common.utils import log
 from stable_baselines3.common.policies import ActorCriticPolicy
 
 

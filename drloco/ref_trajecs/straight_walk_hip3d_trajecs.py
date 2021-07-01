@@ -1,5 +1,5 @@
 import numpy as np
-from scripts.ref_trajecs.straight_walk_trajecs import StraightWalkingTrajectories
+from drloco.ref_trajecs.straight_walk_trajecs import StraightWalkingTrajectories
 
 class StraightWalking3dHipTrajectories(StraightWalkingTrajectories):
     def __init__(self,  qpos_indices, q_vel_indices, adaptations={}):

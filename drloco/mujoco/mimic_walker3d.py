@@ -1,10 +1,8 @@
 import numpy as np
-from os.path import join, dirname
-from gym_mimic_envs.mimic_env import MimicEnv
-
-from scripts.config import config as cfgl
-from scripts.ref_trajecs import straight_walk_trajecs as refs
-from scripts.config import hypers as cfg
+from drloco.config import hypers as cfg
+from drloco.common.utils import get_project_path
+from drloco.mujoco.mimic_env import MimicEnv
+from drloco.ref_trajecs import straight_walk_trajecs as refs
 
 # pause sim on startup to be able to change rendering speed, camera perspective etc.
 pause_mujoco_viewer_on_start = True
@@ -33,13 +31,11 @@ class MimicWalker3dEnv(MimicEnv):
     '''
 
     def __init__(self):
-        # specify the name of the environment XML file
-        walker_xml = 'walker3d_flat_feet.xml'
         # init reference trajectories
         # by specifying the indices in the mocap data to use for qpos and qvel
         reference_trajectories = refs.StraightWalkingTrajectories(qpos_indices, qvel_indices)
         # specify absolute path to the MJCF file
-        mujoco_xml_file = join(dirname(__file__), "assets", walker_xml)
+        mujoco_xml_file = get_project_path() + 'drloco/mujoco/xml/walker3d_flat_feet.xml'
         # init the mimic environment
         MimicEnv.__init__(self, mujoco_xml_file, reference_trajectories)
 
@@ -80,20 +76,20 @@ class MimicWalker3dEnv(MimicEnv):
                 # left foot has ground contact
                 has_contact[0] = True
 
-        if cfg.is_mod(cfg.MOD_3_PHASES):
-            double_stance = all(has_contact)
-            if cfg.is_mod(cfg.MOD_GRND_CONTACT_ONE_HOT):
-                if double_stance:
-                    return [False, False, True]
-                else:
-                    has_contact += [False]
-            else: has_contact + [double_stance]
+        # if cfg.is_mod(cfg.MOD_3_PHASES):
+        #     double_stance = all(has_contact)
+        #     if cfg.is_mod(cfg.MOD_GRND_CONTACT_ONE_HOT):
+        #         if double_stance:
+        #             return [False, False, True]
+        #         else:
+        #             has_contact += [False]
+        #     else: has_contact + [double_stance]
 
-        # when both feet have no ground contact
-        if cfg.is_mod(cfg.MOD_GROUND_CONTACT_NNS) and not any(has_contact):
-            # print('Both feet without ground contact!')
-            # let the left and right foot network handle this situation
-            has_contact = np.array(has_contact)
-            has_contact[:2] = True
+        # # when both feet have no ground contact
+        # if cfg.is_mod(cfg.MOD_GROUND_CONTACT_NNS) and not any(has_contact):
+        #     # print('Both feet without ground contact!')
+        #     # let the left and right foot network handle this situation
+        #     has_contact = np.array(has_contact)
+        #     has_contact[:2] = True
 
         return has_contact

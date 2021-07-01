@@ -1,9 +1,9 @@
 import gym
 import numpy as np
 import seaborn as sns
-from scripts.common.utils import config_pyplot, is_remote, \
+from drloco.common.utils import config_pyplot, is_remote, \
     exponential_running_smoothing as smooth, change_plot_properties
-from gym_mimic_envs.mimic_env import MimicEnv
+from drloco.mujoco.mimic_env import MimicEnv
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecNormalize
 
 # length of the buffer containing sim and ref trajecs for comparison
@@ -54,7 +54,7 @@ class Monitor(gym.Wrapper):
         self.ep_lens = []
         self.grfs_left = []
         self.grfs_right = []
-        self.moved_distance_smooth = 0
+        self.moved_distance = 0
         # track phases during initialization and ET
         self.et_positions = []
         self.rsi_positions = []
@@ -123,7 +123,8 @@ class Monitor(gym.Wrapper):
                 self.difficult_rsi_phases.append(self.init_pos)
             self.ep_len = 0
 
-            self.moved_distance_smooth = smooth('dist', self.env.get_walked_distance(), 0.25)
+            self.moved_distance = self.env.get_walked_distance()
+            # self.moved_distance_smooth = smooth('dist', self.env.data.qpos[0], 0.25)
 
             self.mean_abs_ep_torque_smoothed = \
                 smooth('mean_ep_tor', np.mean(self.ep_torques_abs), 0.75)
@@ -307,7 +308,7 @@ class Monitor(gym.Wrapper):
             PLOT_REWS = False
             if PLOT_REWS:
                 # add rewards and returns
-                from scripts.config.config import rew_scale, alive_bonus
+                from drloco.config.config import rew_scale, alive_bonus
                 rews = np.copy(self.rewards[-_trajec_buffer_length:])
                 rews -= alive_bonus
                 rews /= rew_scale

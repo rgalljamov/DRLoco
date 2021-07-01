@@ -3,11 +3,11 @@ import numpy as np
 import wandb
 
 from stable_baselines3 import PPO
-from scripts.config import hypers as cfg
-from scripts.common import utils
+from drloco.config import config as cfgl
+from drloco.config import hypers as cfg
+from drloco.common import utils
 from torch.utils.tensorboard import SummaryWriter
 from stable_baselines3.common.callbacks import BaseCallback
-from scripts.config.config import CTRL_FREQ, ENV_ID
 
 # define intervals/criteria for saving the model
 # save everytime the agent achieved an additional 10% of the max possible return
@@ -18,7 +18,7 @@ MEAN_REW_INCREMENT = 0.1 * cfg.rew_scale
 
 # define evaluation interval
 EVAL_MORE_FREQUENT_THRES = 3.2e6
-EVAL_INTERVAL_RARE = 400e3 if not cfg.DEBUG else 10e3
+EVAL_INTERVAL_RARE = 400e3 if not cfgl.DEBUG else 10e3
 EVAL_INTERVAL_FREQUENT = 200e3
 EVAL_INTERVAL_MOST_FREQUENT = 100e3
 EVAL_INTERVAL = EVAL_INTERVAL_RARE
@@ -60,16 +60,16 @@ class TrainingMonitor(BaseCallback):
         self.tb.close()
 
     def _on_step(self) -> bool:
-        if cfg.DEBUG and self.num_timesteps > cfg.MAX_DEBUG_STEPS:
-            raise SystemExit(f"Planned Exit after {cfg.MAX_DEBUG_STEPS} due to Debugging mode!")
+        if cfgl.DEBUG and self.num_timesteps > cfgl.MAX_DEBUG_STEPS:
+            raise SystemExit(f"Planned Exit after {cfgl.MAX_DEBUG_STEPS} due to Debugging mode!")
 
         # reset the collection of episode lengths after 1M steps
         # goal: see a distribution of ep lens of last 1M steps,
         # ... not of the whole training so far...
-        if self.num_timesteps % 2e6 < 10:
+        if self.num_timesteps % 1e6 < 1000:
             self.env.set_attr('ep_lens', [])
-            self.env.set_attr('et_phases', [])
-            self.env.set_attr('difficult_rsi_phases', [])
+            # self.env.set_attr('et_phases', [])
+            # self.env.set_attr('difficult_rsi_phases', [])
 
         self.n_steps_after_eval += 1 * cfg.n_envs
 
@@ -80,7 +80,7 @@ class TrainingMonitor(BaseCallback):
 
         global EVAL_INTERVAL
 
-        if self.n_steps_after_eval >= EVAL_INTERVAL and not cfg.DEBUG:
+        if self.n_steps_after_eval >= EVAL_INTERVAL and not cfgl.DEBUG:
             self.n_steps_after_eval = 0
             walking_stably = self.eval_walking()
             # terminate training when stable walking has been learned
@@ -108,10 +108,10 @@ class TrainingMonitor(BaseCallback):
         mean_rew = self.get_mean('mean_reward_smoothed')
 
         # avoid logging data during first episode
-        if ep_len < {400: 60, 200:30, 50:8, 100:15}[cfg.CTRL_FREQ]:
+        if ep_len < {400: 60, 200:30, 50:8, 100:15}[cfgl.CTRL_FREQ]:
             return True
 
-        if not cfg.DEBUG: self.log_to_tb(mean_rew, ep_len, ep_ret)
+        if not cfgl.DEBUG: self.log_to_tb(mean_rew, ep_len, ep_ret)
         # do not save a model if its episode length was too short
         if ep_len > 1500:
             self.save_model_if_good(mean_rew, ep_ret)
@@ -139,24 +139,23 @@ class TrainingMonitor(BaseCallback):
         # get the current policy
         model = self.model
 
-        moved_distance = self.get_mean('moved_distance_smooth')
-        mean_abs_torque_smoothed = self.get_mean('mean_abs_ep_torque_smoothed')
+        moved_distance = self.get_mean('moved_distance')
+        # mean_abs_torque_smoothed = self.get_mean('mean_abs_ep_torque_smoothed')
 
-        self.log_scalar('_det_eval/1. Summary Score', self.summary_score),
-        self.log_scalar('_det_eval/2. stable walks count', self.count_stable_walks),
-        self.log_scalar('_det_eval/4. mean eval distance', self.mean_walked_distance),
-        self.log_scalar('_det_eval/5. MIN eval distance', self.min_walked_distance),
-        self.log_scalar('_det_eval/3. mean step reward', self.mean_reward_means),
-        self.log_scalar('_det_eval/6. mean episode duration', self.mean_episode_duration),
-        self.log_scalar('_det_eval/7. mean walking speed', self.mean_walking_speed),
+        self.log_scalar('_det_eval/1. Summary Score []', self.summary_score),
+        self.log_scalar('_det_eval/2. stable walks count []', self.count_stable_walks),
+        self.log_scalar('_det_eval/4. mean eval distance [m]', self.mean_walked_distance),
+        self.log_scalar('_det_eval/5. MIN eval distance [m]', self.min_walked_distance),
+        self.log_scalar('_det_eval/3. mean step reward [%]', self.mean_reward_means),
+        self.log_scalar('_det_eval/6. mean episode duration [%]', self.mean_episode_duration),
+        self.log_scalar('_det_eval/7. mean walking speed [m/s]', self.mean_walking_speed),
 
-        self.log_scalar('_train/1. moved distance (stochastic, smoothed 0.25)',
-                         moved_distance/cfg.max_distance),
-        self.log_scalar('_train/2. episode length (smoothed 0.75)',
+        self.log_scalar('_train/1. moved distance [m]',moved_distance),
+        self.log_scalar('_train/2. episode length [%] (smoothed 0.75)',
                          ep_len/cfg.ep_dur_max),
-        self.log_scalar('_train/3. step reward (smoothed 0.25)',
+        self.log_scalar('_train/3. step reward [] (smoothed 0.25)',
                          (mean_rew-cfg.alive_bonus)/cfg.rew_scale),
-        self.log_scalar('_train/4. episode return (smoothed 0.75)',
+        self.log_scalar('_train/4. episode return [%] (smoothed 0.75)',
                          (ep_ret-ep_len*cfg.alive_bonus)/(cfg.ep_dur_max*cfg.rew_scale)),
 
         # log reward components
@@ -211,30 +210,30 @@ class TrainingMonitor(BaseCallback):
                     np_histogram=np.histogram(actions, bins=200))}, step=self.num_timesteps)
 
         # log ET and RSI phases
-        et_phases = self.env.get_attr('et_phases')
-        et_phases_flat = [phase for env in et_phases for phase in env]
+        # et_phases = self.env.get_attr('et_phases')
+        # et_phases_flat = [phase for env in et_phases for phase in env]
         # rsi_phases = self.env.get_attr('rsi_phases')
         # rsi_phases_flat = [phase for env in rsi_phases for phase in env]
 
-        wandb.log({"_hist/ET_phases": wandb.Histogram(
-            np_histogram=np.histogram(et_phases_flat, bins=250))}, step=self.num_timesteps)
+        # wandb.log({"_hist/ET_phases": wandb.Histogram(
+        #     np_histogram=np.histogram(et_phases_flat, bins=250))}, step=self.num_timesteps)
         # wandb.log({"_hist/RSI_phases": wandb.Histogram(
         #     np_histogram=np.histogram(rsi_phases_flat, bins=200))}, step=self.num_timesteps)
-        if len(self.failed_eval_runs_indices) > 0:
-            wandb.log({"_hist/trials_below_20m": wandb.Histogram(
-                np_histogram=np.histogram(self.failed_eval_runs_indices,
-                                          bins=20, range=(0,19)))}, step=self.num_timesteps)
+        # if len(self.failed_eval_runs_indices) > 0:
+        #     wandb.log({"_hist/trials_below_20m": wandb.Histogram(
+        #         np_histogram=np.histogram(self.failed_eval_runs_indices,
+        #                                   bins=20, range=(0,19)))}, step=self.num_timesteps)
 
         ep_lens = self.env.get_attr('ep_lens')
         ep_lens = [ep_len for env_lens in ep_lens for ep_len in env_lens]
         wandb.log({"_hist/ep_lens": wandb.Histogram(
             np_histogram=np.histogram(ep_lens, bins=40))}, step=self.num_timesteps)
 
-        difficult_rsi_phases = self.env.get_attr('difficult_rsi_phases')
-        difficult_rsi_phases = [phase for env_phases in difficult_rsi_phases for phase in env_phases]
-        wandb.log({"_hist/difficult_rsi_phases": wandb.Histogram(
-            np_histogram=np.histogram(difficult_rsi_phases, bins=250, range=(0,1)))},
-            step=self.num_timesteps)
+        # difficult_rsi_phases = self.env.get_attr('difficult_rsi_phases')
+        # difficult_rsi_phases = [phase for env_phases in difficult_rsi_phases for phase in env_phases]
+        # wandb.log({"_hist/difficult_rsi_phases": wandb.Histogram(
+        #     np_histogram=np.histogram(difficult_rsi_phases, bins=250, range=(0,1)))},
+        #     step=self.num_timesteps)
 
         if False: # np.random.randint(low=1, high=500) == 77:
             utils.log(f'Logstd after {int(self.num_timesteps/1e3)}k timesteps:',
@@ -245,7 +244,7 @@ class TrainingMonitor(BaseCallback):
 
 
     def save_model_if_good(self, mean_rew, ep_ret):
-        if cfg.DEBUG: return
+        if cfgl.DEBUG: return
         def get_mio_timesteps():
             return int(self.num_timesteps/1e6)
 
@@ -283,7 +282,7 @@ class TrainingMonitor(BaseCallback):
             utils.save_model(self.model, cfg.save_path, checkpoint, full=False)
 
         # load the evaluation environment
-        eval_env = utils.load_env(checkpoint, cfg.save_path, ENV_ID)
+        eval_env = utils.load_env(checkpoint, cfg.save_path, cfgl.ENV_ID)
         mimic_env = eval_env.venv.envs[0].env
         mimic_env.activate_evaluation()
 
@@ -293,7 +292,7 @@ class TrainingMonitor(BaseCallback):
         # evaluate deterministically
         utils.log(f'Starting model evaluation, checkpoint {checkpoint}')
         obs = eval_env.reset()
-        eval_n_times = cfg.EVAL_N_TIMES if self.num_timesteps > 1e6 else 10
+        eval_n_times = cfgl.EVAL_N_TIMES if self.num_timesteps > 1e6 else 10
         for i in range(eval_n_times):
             ep_dur = 0
             walked_distance = 0
@@ -306,7 +305,7 @@ class TrainingMonitor(BaseCallback):
                     moved_distances.append(walked_distance)
                     mean_rewards.append(np.mean(rewards))
                     ep_durs.append(ep_dur)
-                    mean_com_x_vel = walked_distance / (ep_dur / cfg.CTRL_FREQ)
+                    mean_com_x_vel = walked_distance / (ep_dur / cfgl.CTRL_FREQ)
                     mean_com_x_vels.append(mean_com_x_vel)
                     break
                 else:
@@ -333,21 +332,21 @@ class TrainingMonitor(BaseCallback):
         # normalize it
         self.mean_reward_means = (self.mean_reward_means - cfg.alive_bonus)/cfg.rew_scale
 
-        # how many times 20m were reached
-        min_required_distance = 20 if not cfg.is_mod(cfg.MOD_REFS_RAMP) else 9
+        # determine the amound of stable walks / episodes
+        min_required_distance = cfgl.MIN_STABLE_DISTANCE
         runs_below_min_distance = np.where(np.array(moved_distances) < min_required_distance)[0]
         count_runs_reached_min_distance = eval_n_times - len(runs_below_min_distance)
         runs_no_falling = np.where(
-            (np.array(ep_durs) == cfg.ep_dur_max)
-            & (np.array(moved_distances) >= 0.5*min_required_distance))[0]
-        if eval_n_times == cfg.EVAL_N_TIMES:
+            (np.array(ep_durs) == cfg.ep_dur_max) &
+            (np.array(moved_distances) >= 0.5*min_required_distance))[0]
+        if eval_n_times == cfgl.EVAL_N_TIMES:
             self.failed_eval_runs_indices = runs_below_min_distance.tolist()
         self.count_stable_walks = max(count_runs_reached_min_distance, len(runs_no_falling))
         dt = EVAL_INTERVAL / (
             EVAL_INTERVAL_RARE if self.num_timesteps < EVAL_MORE_FREQUENT_THRES else
             EVAL_INTERVAL_FREQUENT)
         self.summary_score += dt * 4 * self.mean_reward_means ** 2 \
-                              * (self.count_stable_walks / cfg.EVAL_N_TIMES) ** 4 \
+                              * (self.count_stable_walks / cfgl.EVAL_N_TIMES) ** 4 \
 
         if False: # runs_20m >= 20 and not cfg.is_mod(cfg.MOD_MIRR_QUERY_VF_ONLY):
             cfg.modification += f'/{cfg.MOD_QUERY_VF_ONLY}'
