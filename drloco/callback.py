@@ -68,8 +68,8 @@ class TrainingMonitor(BaseCallback):
         # ... not of the whole training so far...
         if self.num_timesteps % 2e6 < 10:
             self.env.set_attr('ep_lens', [])
-            self.env.set_attr('et_phases', [])
-            self.env.set_attr('difficult_rsi_phases', [])
+            # self.env.set_attr('et_phases', [])
+            # self.env.set_attr('difficult_rsi_phases', [])
 
         self.n_steps_after_eval += 1 * cfg.n_envs
 
@@ -211,30 +211,30 @@ class TrainingMonitor(BaseCallback):
                     np_histogram=np.histogram(actions, bins=200))}, step=self.num_timesteps)
 
         # log ET and RSI phases
-        et_phases = self.env.get_attr('et_phases')
-        et_phases_flat = [phase for env in et_phases for phase in env]
+        # et_phases = self.env.get_attr('et_phases')
+        # et_phases_flat = [phase for env in et_phases for phase in env]
         # rsi_phases = self.env.get_attr('rsi_phases')
         # rsi_phases_flat = [phase for env in rsi_phases for phase in env]
 
-        wandb.log({"_hist/ET_phases": wandb.Histogram(
-            np_histogram=np.histogram(et_phases_flat, bins=250))}, step=self.num_timesteps)
+        # wandb.log({"_hist/ET_phases": wandb.Histogram(
+        #     np_histogram=np.histogram(et_phases_flat, bins=250))}, step=self.num_timesteps)
         # wandb.log({"_hist/RSI_phases": wandb.Histogram(
         #     np_histogram=np.histogram(rsi_phases_flat, bins=200))}, step=self.num_timesteps)
-        if len(self.failed_eval_runs_indices) > 0:
-            wandb.log({"_hist/trials_below_20m": wandb.Histogram(
-                np_histogram=np.histogram(self.failed_eval_runs_indices,
-                                          bins=20, range=(0,19)))}, step=self.num_timesteps)
+        # if len(self.failed_eval_runs_indices) > 0:
+        #     wandb.log({"_hist/trials_below_20m": wandb.Histogram(
+        #         np_histogram=np.histogram(self.failed_eval_runs_indices,
+        #                                   bins=20, range=(0,19)))}, step=self.num_timesteps)
 
         ep_lens = self.env.get_attr('ep_lens')
         ep_lens = [ep_len for env_lens in ep_lens for ep_len in env_lens]
         wandb.log({"_hist/ep_lens": wandb.Histogram(
             np_histogram=np.histogram(ep_lens, bins=40))}, step=self.num_timesteps)
 
-        difficult_rsi_phases = self.env.get_attr('difficult_rsi_phases')
-        difficult_rsi_phases = [phase for env_phases in difficult_rsi_phases for phase in env_phases]
-        wandb.log({"_hist/difficult_rsi_phases": wandb.Histogram(
-            np_histogram=np.histogram(difficult_rsi_phases, bins=250, range=(0,1)))},
-            step=self.num_timesteps)
+        # difficult_rsi_phases = self.env.get_attr('difficult_rsi_phases')
+        # difficult_rsi_phases = [phase for env_phases in difficult_rsi_phases for phase in env_phases]
+        # wandb.log({"_hist/difficult_rsi_phases": wandb.Histogram(
+        #     np_histogram=np.histogram(difficult_rsi_phases, bins=250, range=(0,1)))},
+        #     step=self.num_timesteps)
 
         if False: # np.random.randint(low=1, high=500) == 77:
             utils.log(f'Logstd after {int(self.num_timesteps/1e3)}k timesteps:',
