@@ -10,7 +10,7 @@ import random
 import numpy as np
 import scipy.io as spio
 from drloco.ref_trajecs.base_ref_trajecs import BaseReferenceTrajectories
-from drloco.config.hypers import EVAL_N_TIMES
+from drloco.config.config import EVAL_N_TIMES
 from drloco.common.utils import log, is_remote, config_pyplot, smooth_exponential, \
     get_project_path
 

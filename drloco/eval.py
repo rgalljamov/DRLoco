@@ -20,36 +20,20 @@ PATH = "/mnt/88E4BD3EE4BD2EF6/Masters/M.Sc. Thesis/Code/models/dmm/mirr_exps/cst
        "mim3d/8envs/ppo2/1.0mio/672-evaled-ret-12901"
 if not PATH.endswith('/'): PATH += '/'
 
-# which model should be evaluated
-run_id = 672
-checkpoint =  '999' # 'mean_rew60_12M' # 'ep_ret5500' # 999
-
 # evaluate for n episodes
 n_eps = 10
 # how many actions to record in each episode
 rec_n_steps = 1000
 
-def eval_model(from_config=True):
-    """@:param from_config: if true, reloads the run_id from config file
-                before evaluation (for direct eval after training).
-                If false, uses the id specified in this script. """
+def eval_model(run_id, checkpoint):
 
-    print('\n---------------------------\n'
-              'MODEL EVALUATION STARTED'
-          '\n---------------------------\n')
-
-    global run_id, checkpoint
-
-    # get model location from the config file
-    if from_config:
-        run_id = cfg.run_id
-        checkpoint = drloco.train.FINAL_CHECKPOINT_SUFFIX
+    utils.log('MODEL EVALUATION STARTED')
 
     # change save_path to specified model
     if FROM_PATH:
         save_path = PATH
     else:
-        save_path = cfg.save_path_norun + f'{run_id}/'
+        save_path = cfg.save_path
 
     env = utils.load_env(checkpoint, save_path, cfg.env_id)
     mimic_env = env.venv.envs[0]
@@ -214,7 +198,7 @@ def record_video_OLD(model, checkpoint, all_returns, relevant_eps):
     if FROM_PATH:
         save_path = PATH
     else:
-        save_path = cfg.save_path_norun + f'{run_id}/'
+        save_path = cfg.save_path
     env = utils.load_env(checkpoint, save_path, cfg.env_id)
     obs = env.reset()
 
@@ -290,8 +274,7 @@ def has_fallen(mimic_env):
 
 
 if __name__ == "__main__":
-    eval_model(from_config=False)
-
+    pass
 # eval.py was called from another script
 else:
     RENDER = False

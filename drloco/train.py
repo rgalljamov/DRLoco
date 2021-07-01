@@ -50,20 +50,15 @@ def init_wandb(model):
         "lr0": cfg.lr_start,
         "lr1": cfg.lr_final,
         'hid_sizes': cfg.hid_layer_sizes,
-        # 'peak_joint_torques': cfg.peak_joint_torques,
         "noptepochs": cfg.noptepochs,
         "batch_size": batch_size,
         "cfg.batch_size": cfg.batch_size,
-        # "n_mini_batches": model.nminibatches,
         "cfg.minibatch_size": cfg.minibatch_size,
-        # "mini_batch_size": int(batch_size / model.nminibatches),
         "mio_steps": cfg.mio_samples,
         "ent_coef": model.ent_coef,
         "ep_dur": cfg.ep_dur_max,
         "imit_rew": cfg.rew_weights,
         "logstd": cfg.init_logstd,
-        # "min_logstd": LOG_STD_MIN,
-        # "max_logstd": LOG_STD_MAX,
         "gam": model.gamma,
         "lam": model.gae_lambda,
         "n_envs": model.n_envs,
@@ -72,10 +67,10 @@ def init_wandb(model):
         "n_steps": model.n_steps,
         "vf_coef": model.vf_coef,
         "max_grad_norm": model.max_grad_norm,
-        # "nminibatches": model.nminibatches,
-        "clip0": cfg.clip_start,
-        "clip1": cfg.clip_end,
         }
+
+    if cfg.is_mod(cfg.MOD_CLIPRANGE_SCHED):
+        params.update({"clip0": cfg.clip_start, "clip1": cfg.clip_end})
 
     wandb.init(config=params, sync_tensorboard=True, name=cfgl.WB_RUN_NAME,
                project=cfgl.WB_PROJECT_NAME, notes=cfgl.WB_RUN_DESCRIPTION)
@@ -103,7 +98,11 @@ def train():
     lr_end = cfg.lr_final
 
     learning_rate_schedule = LinearDecay(lr_start, lr_end).value
-    clip_schedule = ExponentialSchedule(cfg.clip_start, cfg.clip_end, cfg.clip_exp_slope).value
+    if cfg.is_mod(cfg.MOD_CLIPRANGE_SCHED):
+        clip_schedule = ExponentialSchedule(cfg.clip_start, cfg.clip_end, cfg.clip_exp_slope)
+        clip_range = clip_schedule.value
+    else:
+        clip_range = cfg.cliprange
 
     use_custom_policy = cfg.is_mod(cfg.MOD_CUSTOM_POLICY)
     policy_kwargs = {'log_std_init':cfg.init_logstd} if use_custom_policy else \
@@ -117,13 +116,11 @@ def train():
                        policy_kwargs=policy_kwargs,
                        learning_rate=learning_rate_schedule, ent_coef=cfg.ent_coef,
                        gamma=cfg.gamma, n_epochs=cfg.noptepochs,
-                       clip_range_vf=clip_schedule if cfg.is_mod(cfg.MOD_CLIPRANGE_SCHED) else cfg.cliprange,
-                       clip_range=clip_schedule if cfg.is_mod(cfg.MOD_CLIPRANGE_SCHED) else cfg.cliprange,
+                       clip_range_vf=clip_range, clip_range=clip_range,
                        tensorboard_log=cfg.save_path + 'tb_logs/')
 
-    # init wandb
-    if not cfg.DEBUG:
-        init_wandb(model)
+    # init wandb when not debugging
+    if not cfgl.DEBUG: init_wandb(model)
 
     # print model path and modification parameters
     utils.log('RUN DESCRIPTION: \n' + cfgl.WB_RUN_DESCRIPTION)
@@ -131,7 +128,7 @@ def train():
               ['Model: ' + cfg.save_path, 'Modifications: ' + cfg.modification])
 
     # save model and weights before training
-    if not cfg.DEBUG:
+    if not cfgl.DEBUG:
         utils.save_model(model, cfg.save_path, INIT_CHECKPOINT_SUFFIX)
 
     # train model
@@ -143,8 +140,8 @@ def train():
     # close environment
     env.close()
 
-    # evaluate last saved model
-    eval.eval_model()
+    # evaluate the trained model
+    # eval.eval_model()
 
 
 if __name__ == '__main__':

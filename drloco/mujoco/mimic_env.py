@@ -638,8 +638,8 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
     def get_imitation_reward(self):
         """ DeepMimic imitation reward function """
 
-        # get rew weights from rew_weights_string
-        weights = [float(digit)/10 for digit in cfg.rew_weights]
+        # get rew weights
+        weights = cfg.rew_weights
 
         w_pos, w_vel, w_com, w_pow = weights
         pos_rew = self.get_pose_reward()

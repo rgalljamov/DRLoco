@@ -1,13 +1,12 @@
-import sys
 import numpy as np
 import torch as th
 from drloco.common import utils
 from drloco.config import config as cfg
 
-# ---------------------------------------------
+# ---------------------------------------------------
 # MODIFICATIONS of the PPO algorithm,
 # e.g. to achieve better sample efficiency
-# ---------------------------------------------
+# ---------------------------------------------------
 
 # use our own policy extending the ActorCriticPolicy
 # to change network topology etc. Used as default mode!
@@ -33,56 +32,93 @@ assert not is_mod(MOD_MIRR_POLICY), \
     'Mirroring Policy can only be used with the StraightWalker. ' \
     'AND only after changing the mirroring functions! '
 
-# ---------------------------------------------
 
-# delete and directly ask for cfg.DEBUG
-DEBUG = cfg.DEBUG or not sys.gettrace() is None
-MAX_DEBUG_STEPS = int(2e4) # stop training thereafter!
+# ---------------------------------------------------
+# DEEPMIMIC HYPERPARAMETERS
+# ---------------------------------------------------
 
-rew_weights = '8200'
-ent_coef = -0.0075
-init_logstd = -0.7
-# todo: put all cliprange settings in the same short block
-cliprange = 0.15
-# only for cliprange scheduling
-clip_start = 0.55 if is_mod(MOD_CLIPRANGE_SCHED) else cliprange
-clip_end = 0.1 if is_mod(MOD_CLIPRANGE_SCHED) else cliprange
-clip_exp_slope = 5
+# weights for the imitation reward
+# [joint positions, joint velocities, com reward, energy]
+rew_weights = [0.8, 0.2, 0, 0]
 
-# network hidden layer sizes
-hid_layer_sizes = [512]*2
-activation_fns = [th.nn.Tanh]*2
-gamma = {50:0.99, 100: 0.99, 200:0.995, 400:0.998}[cfg.CTRL_FREQ]
+# reward scaling (set to 1 to disable)
 rew_scale = 1
-alive_bonus = 0.2 * rew_scale
-# number of episodes per model evaluation
-EVAL_N_TIMES = 20
-# num of times a batch of experiences is used
-noptepochs = 4
 
-# ----------------------------------------------------------------------------------
+# alive bonus is provided as reward for each step
+# the agent hasn't entered a terminal state
+alive_bonus = 0.2 * rew_scale
+
+# Early Termination: maximum steps in the environment per episode
+ep_dur_max = 1000
+
+# ---------------------------------------------------
+# (PPO) HYPERPARAMETERS
+#
+# Detailed documentation of the PPO implementation:
+# https://stable-baselines3.readthedocs.io/en/master/modules/ppo.html#parameters
+# ---------------------------------------------------
+
+# The discount factor we found to be optimal for different control frequencies
+gamma = {50:0.99, 100: 0.99, 200:0.995, 400:0.998}[cfg.CTRL_FREQ]
+
+# PPO samples the actions from a Gaussian Distribution.
+# This hyperparameter specifies the the log standard deviation
+# of the initial Gaussian Distribution at the trainings beginning
+# NOTE: e^(-0.7) is about 0.5 which we found to be optimal for
+# a normalized action space with a range of [-1,1]
+init_logstd = -0.7
+
+# batch and minibatch size
+minibatch_size = 512 * 4
+batch_size = (4096 * 4) if not cfg.DEBUG else 2 * minibatch_size
+
+# we schedule the learning rate to start from lr_start
+# and decrease to lr_final over the course of the training
+# when lr_scale is 1. Otherwise, the slope of the schedule is
+# slope = lr_scale * (lr_final - lr_start)
+lr_start = 500 * (1e-6)
+lr_final = 1 * (1e-6)
+lr_scale = 1
 
 # number of experiences to collect [in Millions]
 mio_samples = 8
+
 # how many parallel environments should be used to collect samples
-n_envs = 8 if utils.is_remote() and not DEBUG else 1
-minibatch_size = 512 * 4
-batch_size = (4096 * 4) if not DEBUG else 2*minibatch_size
-# to make PHASE based mirroring comparable with DUP, reduce the batch size
-if is_mod(MOD_MIRR_POLICY): batch_size = int(batch_size / 2)
+n_envs = 8 if utils.is_remote() and not cfg.DEBUG else 1
 
-lr_start = 500 * (1e-6)
-lr_final = 1 * (1e-6)
-# LR decay slope scaling: slope = lr_scale * (lr_final - lr_start)
-# the decay is linear from lr_start to lr_final
-lr_scale = 1
-# maximum steps in the environment per episode
-ep_dur_max = 1000
+# Neural Network hidden layer sizes
+# and the corresponding activation functions
+# length of the lists = number of hidden layers
+hid_layer_sizes = [512]*2
+activation_fns = [th.nn.Tanh]*2
 
-# todo: move to train.py or utils
-# construct the paths to store the models at
+# the cliprange specifies the maximum allowed distance between
+# consequtive policies in order to avoid disruptive policy updates
+if is_mod(MOD_CLIPRANGE_SCHED):
+    clip_start = 0.55
+    clip_end = 0.1
+    clip_exp_slope = 5
+else:
+    cliprange = 0.15
+
+# a negative entropy coefficient punishes exploration,
+# a positive one encourages it
+ent_coef = -0.0075
+
+# num of times a batch of experiences
+# is used to update the policy
+noptepochs = 4
+
+
+# ---------------------------------------------------
+# BUILD MODEL PATH
+#
+# Based on the made hyperparameter choices,
+# we construct a path to save the trained model at.
+# ---------------------------------------------------
+
 run_id = str(np.random.randint(0, 1000))
-_mod_path = ('debug/' if DEBUG else '') + \
+_mod_path = ('cfg.DEBUG/' if cfg.DEBUG else '') + \
             f'train/{modification}/{cfg.ENV_ID}/{n_envs}envs/' \
             f'{mio_samples}mio/'
 save_path_norun= utils.get_project_path() + 'models/' + _mod_path
