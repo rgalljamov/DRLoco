@@ -3,6 +3,7 @@ import glob, wandb
 import numpy as np
 
 import drloco.config.config
+import drloco.train
 from drloco.common import utils
 from drloco.config import hypers as cfg
 
@@ -42,7 +43,7 @@ def eval_model(from_config=True):
     # get model location from the config file
     if from_config:
         run_id = cfg.run_id
-        checkpoint = drloco.config.config.final_checkpoint
+        checkpoint = drloco.train.FINAL_CHECKPOINT_SUFFIX
 
     # change save_path to specified model
     if FROM_PATH:

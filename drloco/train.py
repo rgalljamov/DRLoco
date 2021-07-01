@@ -21,19 +21,26 @@ from stable_baselines3 import PPO
 from stable_baselines3.ppo.policies import MlpPolicy
 from drloco.custom.policies import CustomActorCriticPolicy
 
-# todo: move to utils? Or is it ok here,
-#  as it is all about training which is train.py is all about too : )
+# determine the name of saved models before (init) and after training (final)
+INIT_CHECKPOINT_SUFFIX = 'init'
+FINAL_CHECKPOINT_SUFFIX = 'final'
+
 def use_cpu():
+    """
+    Force PyTorch to use CPU instead of GPU.
+    In some cases, e.g. training many agents in parallel on a CPU cluster,
+    it might be useful to use CPU instead of GPU. This function fools PyTorch
+    to think there is no GPU available on the PC, so that it uses the CPU.
+    """
     from os import environ
     # fool python to think there is no CUDA device
     environ["CUDA_VISIBLE_DEVICES"] = ""
     # to avoid massive slow-down when using torch with cpu
     import torch
-    n_envs = cfgl.N_PARALLEL_ENVS
+    n_envs = cfg.n_envs
     torch.set_num_threads(n_envs if n_envs <= 16 else 8)
 
 
-# todo: move to utils
 def init_wandb(model):
     batch_size = model.n_steps * model.n_envs
     params = {
@@ -76,9 +83,8 @@ def init_wandb(model):
 
 def train():
 
-    # make torch using the CPU instead of the GPU by default
-    if cfgl.USE_CPU:
-        use_cpu()
+    # make torch using the CPU instead of the GPU
+    if cfgl.USE_CPU: use_cpu()
 
     # create model directories
     if not os.path.exists(cfg.save_path):
@@ -126,13 +132,13 @@ def train():
 
     # save model and weights before training
     if not cfg.DEBUG:
-        utils.save_model(model, cfg.save_path, drloco.config.config.init_checkpoint)
+        utils.save_model(model, cfg.save_path, INIT_CHECKPOINT_SUFFIX)
 
     # train model
     model.learn(total_timesteps=training_timesteps, callback=TrainingMonitor())
 
     # save model after training
-    utils.save_model(model, cfg.save_path, drloco.config.config.final_checkpoint)
+    utils.save_model(model, cfg.save_path, FINAL_CHECKPOINT_SUFFIX)
 
     # close environment
     env.close()

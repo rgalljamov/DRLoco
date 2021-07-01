@@ -1,5 +1,5 @@
 '''
-Interface for environments using reference trajectories.
+Base class for environments using reference trajectories for imitation learning.
 '''
 import numpy as np
 import typing as typ
@@ -9,14 +9,14 @@ from drloco.config import config as cfgl
 from drloco.config import hypers as cfg
 from drloco.common.utils import log, is_remote, \
     exponential_running_smoothing as smooth
-from drloco.ref_trajecs.base_ref_trajecs import BaseReferenceTrajectories as RefTrajecs
 from mujoco_py.builder import MujocoException
+from drloco.ref_trajecs.base_ref_trajecs import BaseReferenceTrajectories as RefTrajecs
 
 # pause sim on startup to be able to change rendering speed, camera perspective etc.
 pause_mujoco_viewer_on_start = True and not is_remote()
 
 class MimicEnv(MujocoEnv, gym.utils.EzPickle):
-    def __init__(self: MujocoEnv, xml_path, ref_trajecs:RefTrajecs):
+    def __init__(self, xml_path, ref_trajecs:RefTrajecs):
         """ The base class to derive from to train an environment using the DeepMimic Approach.
             :param self: gym environment class extending the MimicEnv class
             :param: xml_path: path to the mujoco environment XML file
@@ -24,11 +24,8 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         """
 
         self.refs = ref_trajecs
-        # set simulation and control frequency
-        self._sim_freq, self._frame_skip = self._get_sim_freq_and_frameskip()
         # flag required for a workaround due to MujocoEnv calling step() during initialization
         self.finished_init = False
-
         # when we evaluate a model during or after the training,
         # we might want to weaken ET conditions or monitor and plot data
         self._EVAL_MODEL = False
@@ -47,14 +44,14 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         # track the so far walked distance by integrating the COM velocity vector
         self.walked_distance = 0
         # set the control frequency
-        self.control_freq = self._sim_freq / self._frame_skip
+        self.control_freq = cfgl.CTRL_FREQ
 
+        # calculate for how many frames to apply the same action
+        self._frame_skip = self._calculate_frameskip()
         # initialize Mujoco Environment
         MujocoEnv.__init__(self, xml_path, self._frame_skip)
         # init EzPickle (think it is required to be able to save and load models)
         gym.utils.EzPickle.__init__(self)
-        # make sure simulation runs at the desired frequency
-        self.model.opt.timestep = 1 / self._sim_freq
         # workaround for MujocoEnv calling step()
         # during initialization without calling reset() before
         self.finished_init = True
@@ -115,9 +112,9 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         # check if we entered a terminal state
         com_z_pos = self.get_COM_Z_position()
         # was max episode duration or max walking distance reached?
-        # todo: do we really need a maximum walked distance? It is already limited by the ep_dur!
-        max_eplen_reached = self.ep_dur >= cfg.ep_dur_max or \
-                            self.walked_distance > cfg.max_distance + 0.1
+
+        max_eplen_reached = self.ep_dur >= cfg.ep_dur_max
+
         # terminate the episode?
         # todo: should be is_done() or self.ep_dur >= cfg.ep_dur_max
         done = com_z_pos < 0.5 or max_eplen_reached
@@ -194,17 +191,20 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
         return np.array(scaled_action)
 
-    def _get_sim_freq_and_frameskip(self):
+    def _calculate_frameskip(self):
         """
         What is the frequency the simulation is running at
         and how many frames should be skipped during step(action)?
         """
-        skip_n_frames = cfgl.SIM_FREQ/cfgl.CTRL_FREQ
+        # get simulation frequency
+        from drloco.mujoco.config import sim_freqs
+        sim_freq = sim_freqs[cfgl.ENV_ID]
+        skip_n_frames = sim_freq/cfgl.CTRL_FREQ
         assert skip_n_frames.is_integer(), \
             f"Please check the simulation and control frequency in the config! " \
             f"The simulation frequency should be an integer multiple of the control frequency." \
-            f"Your simulation frequency is {cfg.SIM_FREQ} and control frequency is {cfg.CTRL_FREQ}"
-        return cfgl.SIM_FREQ, int(skip_n_frames)
+            f"Your simulation frequency is {sim_freq} and control frequency is {cfg.CTRL_FREQ}"
+        return int(skip_n_frames)
 
     def get_joint_kinematics(self, exclude_com=False, concat=False):
         '''Returns qpos and qvel of the agent.'''

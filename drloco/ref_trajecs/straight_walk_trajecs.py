@@ -10,33 +10,18 @@ import random
 import numpy as np
 import scipy.io as spio
 from drloco.ref_trajecs.base_ref_trajecs import BaseReferenceTrajectories
-from drloco.config.hypers import is_mod, MOD_REFS_RAMP, EVAL_N_TIMES
+from drloco.config.hypers import EVAL_N_TIMES
 from drloco.common.utils import log, is_remote, config_pyplot, smooth_exponential, \
     get_project_path
-
-
-# relative paths to trajectories
-PATH_CONSTANT_SPEED = 'assets/mocaps/straight_walking/Trajecs_Constant_Speed_400Hz.mat'
-PATH_SPEED_RAMP = 'assets/mocaps/straight_walking/Trajecs_Ramp_Slow_400Hz_EulerTrunkAdded.mat'
 
 # execute on my private PC or on the remote Lauflabor PC
 REMOTE = is_remote()
 
-# path to the assets folder, where the mocap data is stored
-assets_path = '/home/rustam/code/torch/' if REMOTE \
-    else '/mnt/88E4BD3EE4BD2EF6/Users/Sony/Google Drive/WORK/DRL/CodeTorch/'
-
-# path to the saved trajectory ranges (no longer used)
-PATH_TRAJEC_RANGES = assets_path + \
-                     'assets/mocaps/straight_walking/Trajec_Ranges_Ramp_Slow_200Hz_EulerTrunkAdded.npz'
-
-# path to the reference trajectories
-PATH_REF_TRAJECS = PATH_SPEED_RAMP if is_mod(MOD_REFS_RAMP) else PATH_CONSTANT_SPEED
-
-SAMPLE_FREQ = 400
-assert str(SAMPLE_FREQ) in PATH_REF_TRAJECS, 'Have you set the right sample frequency!?'
-
-# log('Trajecs Path:\n' + PATH_REF_TRAJECS)
+# relative paths to the two available trajectories
+PATH_CONSTANT_SPEED = 'assets/mocaps/straight_walking/Trajecs_Constant_Speed_400Hz.mat'
+PATH_SPEED_RAMP = 'assets/mocaps/straight_walking/Trajecs_Ramp_Slow_400Hz_EulerTrunkAdded.mat'
+# path to the reference trajectories to use
+PATH_REF_TRAJECS = PATH_SPEED_RAMP
 
 # is the trajectory with the constant speed chosen?
 _is_constant_speed = PATH_CONSTANT_SPEED in PATH_REF_TRAJECS
@@ -441,6 +426,7 @@ class StraightWalkingTrajectories(BaseReferenceTrajectories):
            deviated too much from the reference trajectories. How much deviation is allowed
            depends on the maximum range of a joint position or velocity.'''
         # load already determined and saved ranges or calculate and save if not yet happened
+        PATH_TRAJEC_RANGES = ''
         try:
             global labels
             npz = np.load(PATH_TRAJEC_RANGES)

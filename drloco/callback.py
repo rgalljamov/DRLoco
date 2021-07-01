@@ -7,7 +7,7 @@ from drloco.config import hypers as cfg
 from drloco.common import utils
 from torch.utils.tensorboard import SummaryWriter
 from stable_baselines3.common.callbacks import BaseCallback
-from drloco.config.config import CTRL_FREQ, ENV_ID
+from drloco.config.config import CTRL_FREQ, ENV_ID, MIN_STABLE_DISTANCE
 
 # define intervals/criteria for saving the model
 # save everytime the agent achieved an additional 10% of the max possible return
@@ -139,8 +139,8 @@ class TrainingMonitor(BaseCallback):
         # get the current policy
         model = self.model
 
-        moved_distance = self.get_mean('moved_distance_smooth')
-        mean_abs_torque_smoothed = self.get_mean('mean_abs_ep_torque_smoothed')
+        moved_distance = self.get_mean('moved_distance')
+        # mean_abs_torque_smoothed = self.get_mean('mean_abs_ep_torque_smoothed')
 
         self.log_scalar('_det_eval/1. Summary Score []', self.summary_score),
         self.log_scalar('_det_eval/2. stable walks count []', self.count_stable_walks),
@@ -150,13 +150,13 @@ class TrainingMonitor(BaseCallback):
         self.log_scalar('_det_eval/6. mean episode duration [%]', self.mean_episode_duration),
         self.log_scalar('_det_eval/7. mean walking speed [m/s]', self.mean_walking_speed),
 
-        self.log_scalar('_train/1. moved distance (stochastic, smoothed 0.25)',
-                         moved_distance/cfg.max_distance),
-        self.log_scalar('_train/2. episode length (smoothed 0.75)',
+        self.log_scalar('_train/1. moved distance [m]',
+                         moved_distance),
+        self.log_scalar('_train/2. episode length [%] (smoothed 0.75)',
                          ep_len/cfg.ep_dur_max),
-        self.log_scalar('_train/3. step reward (smoothed 0.25)',
+        self.log_scalar('_train/3. step reward [] (smoothed 0.25)',
                          (mean_rew-cfg.alive_bonus)/cfg.rew_scale),
-        self.log_scalar('_train/4. episode return (smoothed 0.75)',
+        self.log_scalar('_train/4. episode return [%] (smoothed 0.75)',
                          (ep_ret-ep_len*cfg.alive_bonus)/(cfg.ep_dur_max*cfg.rew_scale)),
 
         # log reward components
@@ -333,13 +333,13 @@ class TrainingMonitor(BaseCallback):
         # normalize it
         self.mean_reward_means = (self.mean_reward_means - cfg.alive_bonus)/cfg.rew_scale
 
-        # how many times 20m were reached
-        min_required_distance = 20 if not cfg.is_mod(cfg.MOD_REFS_RAMP) else 9
+        # determine the amound of stable walks / episodes
+        min_required_distance = MIN_STABLE_DISTANCE
         runs_below_min_distance = np.where(np.array(moved_distances) < min_required_distance)[0]
         count_runs_reached_min_distance = eval_n_times - len(runs_below_min_distance)
         runs_no_falling = np.where(
-            (np.array(ep_durs) == cfg.ep_dur_max)
-            & (np.array(moved_distances) >= 0.5*min_required_distance))[0]
+            (np.array(ep_durs) == cfg.ep_dur_max) &
+            (np.array(moved_distances) >= 0.5*min_required_distance))[0]
         if eval_n_times == cfg.EVAL_N_TIMES:
             self.failed_eval_runs_indices = runs_below_min_distance.tolist()
         self.count_stable_walks = max(count_runs_reached_min_distance, len(runs_no_falling))

@@ -4,17 +4,10 @@ import torch as th
 from drloco.common import utils
 from drloco.config import config as cfg
 
-def is_mod(mod_str):
-    '''Simple check if a certain modification to the baseline algorithm is used,
-       e.g. is_mod(MOD_MIRR_POLICY) is true, when we mirror the policy. '''
-    return mod_str in modification
-
-# MODIFICATIONS of the PPO algorithm to achieve better sample efficiency
-
-# todo: choice of mocaps should NOT be a modification
-#  Create separate classes for both refs, possibly simply in the straight-walking-refs!
-MOD_REFS_CONST = 'refs_const'
-MOD_REFS_RAMP = 'refs_ramp'
+# ---------------------------------------------
+# MODIFICATIONS of the PPO algorithm,
+# e.g. to achieve better sample efficiency
+# ---------------------------------------------
 
 # use our own policy extending the ActorCriticPolicy
 # to change network topology etc. Used as default mode!
@@ -27,20 +20,23 @@ MOD_CLIPRANGE_SCHED = 'clip_sched'
 # learn policy for right step only, mirror states and actions for the left step
 MOD_MIRR_POLICY = 'mirr_py'
 
-# ------------------
-
-# todo: change all modifications to simple flags
 # specify modifications to the baseline algorithm, e.g. mirroring policy
 modifications_list = [MOD_CUSTOM_POLICY]
 modification = '/'.join(modifications_list)
 
+def is_mod(mod_str):
+    '''Simple check if a certain modification to the baseline algorithm is used,
+       e.g. is_mod(MOD_MIRR_POLICY) is true, when we mirror the policy. '''
+    return mod_str in modification
+
 assert not is_mod(MOD_MIRR_POLICY), \
     'Mirroring Policy can only be used with the StraightWalker. ' \
     'AND only after changing the mirroring functions! '
-# ----------------------------------------------------------------------------------
-# Weights and Biases
-# ----------------------------------------------------------------------------------
-DEBUG = cfg.DEBUG_TRAINING or not sys.gettrace() is None
+
+# ---------------------------------------------
+
+# delete and directly ask for cfg.DEBUG
+DEBUG = cfg.DEBUG or not sys.gettrace() is None
 MAX_DEBUG_STEPS = int(2e4) # stop training thereafter!
 
 rew_weights = '8200'
@@ -53,7 +49,8 @@ clip_start = 0.55 if is_mod(MOD_CLIPRANGE_SCHED) else cliprange
 clip_end = 0.1 if is_mod(MOD_CLIPRANGE_SCHED) else cliprange
 clip_exp_slope = 5
 
-hid_layer_sizes = cfg.hid_layer_sizes
+# network hidden layer sizes
+hid_layer_sizes = [512]*2
 activation_fns = [th.nn.Tanh]*2
 gamma = {50:0.99, 100: 0.99, 200:0.995, 400:0.998}[cfg.CTRL_FREQ]
 rew_scale = 1
@@ -65,9 +62,10 @@ noptepochs = 4
 
 # ----------------------------------------------------------------------------------
 
-# number of experiences to collect, not training steps.
-mio_samples = cfg.MIO_SAMPLES
-n_envs = cfg.N_PARALLEL_ENVS if utils.is_remote() and not DEBUG else 1
+# number of experiences to collect [in Millions]
+mio_samples = 8
+# how many parallel environments should be used to collect samples
+n_envs = 8 if utils.is_remote() and not DEBUG else 1
 minibatch_size = 512 * 4
 batch_size = (4096 * 4) if not DEBUG else 2*minibatch_size
 # to make PHASE based mirroring comparable with DUP, reduce the batch size
@@ -75,10 +73,13 @@ if is_mod(MOD_MIRR_POLICY): batch_size = int(batch_size / 2)
 
 lr_start = 500 * (1e-6)
 lr_final = 1 * (1e-6)
-ep_dur_max = cfg.MAX_EPISODE_STEPS # int(_ep_dur_in_k * 1e3)
-max_distance = cfg.MAX_WALKING_DISTANCE
+# LR decay slope scaling: slope = lr_scale * (lr_final - lr_start)
+# the decay is linear from lr_start to lr_final
+lr_scale = 1
+# maximum steps in the environment per episode
+ep_dur_max = 1000
 
-# todo: move to train.py
+# todo: move to train.py or utils
 # construct the paths to store the models at
 run_id = str(np.random.randint(0, 1000))
 _mod_path = ('debug/' if DEBUG else '') + \
@@ -86,7 +87,3 @@ _mod_path = ('debug/' if DEBUG else '') + \
             f'{mio_samples}mio/'
 save_path_norun= utils.get_project_path() + 'models/' + _mod_path
 save_path = save_path_norun + f'{run_id}/'
-
-if __name__ == '__main__':
-    from drloco.train import train
-    train()

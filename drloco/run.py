@@ -53,10 +53,6 @@ checkpoint = 'final' # 'ep_ret2100_20M' # '33_min24mean24' # 'ep_ret2000_7M' #'m
 if FROM_PATH:
     if not PATH.endswith('/'): PATH += '/'
 
-    # check if correct reference trajectories are used
-    if cfg.MOD_REFS_RAMP in PATH and not cfg.is_mod(cfg.MOD_REFS_RAMP):
-        raise AssertionError('Model trained on ramp-trajecs but is used with constant speed trajecs!')
-
     # load model
     model_path = PATH + f'models/model_{checkpoint}'
     model = PPO.load(path=model_path)
@@ -64,13 +60,8 @@ if FROM_PATH:
 
     env = load_env(checkpoint, PATH, cfg.env_id)
 else:
-    env_id = cfgl.ENV_ID # 'MimicWalker165cm65kg-v0' # 'MimicWalker3d-v0' # 'MimicWalker3dHip-v0' #
-    if env_id == 'MimicWalker3d-v0':
-        env = MimicWalker3dEnv()
-    elif env_id == 'MimicWalker165cm65kg-v0':
-        env = MimicWalker165cm65kgEnv()
-    else:
-        raise ModuleNotFoundError(f'The specified environment not found: {env_id}')
+    from drloco.mujoco.config import env_map
+    env = env_map[cfgl.ENV_ID]()
     env = Monitor(env)
     vec_env = env
     if PLAYBACK_TRAJECS:

@@ -1,7 +1,9 @@
-import gym, os, wandb
+import gym, wandb
 import numpy as np
 import seaborn as sns
 from os import path, getcwd
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecNormalize
+
 
 def is_remote():
     """
@@ -21,13 +23,8 @@ def get_project_path():
     dirname = path.dirname
     return dirname(dirname(dirname(__file__))) + '/'
 
-abs_project_path = get_project_path()
-from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecNormalize
-# import gym_mimic_envs
-
 # used for running mean
 _running_means = {}
-
 # used for exponential running smoothing
 _exp_weighted_averages = {}
 
