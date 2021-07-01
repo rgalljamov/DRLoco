@@ -1,21 +1,44 @@
+# add current working directory to the system path
+import sys
+from os import getcwd
+sys.path.append(getcwd())
+
+# import required modules
 import os.path
 import wandb
 
 import torch as th
 
-import scripts.config.config
-from scripts import eval
-from scripts.config import config as cfgl
-from scripts.config import hypers as cfg
-from scripts.common import utils
-from scripts.common.schedules import LinearDecay, ExponentialSchedule
-from scripts.callback import TrainingMonitor
-# from scripts.common.distributions import LOG_STD_MIN, LOG_STD_MAX
+import drloco.config.config
+from drloco import eval
+from drloco.config import config as cfgl
+from drloco.config import hypers as cfg
+from drloco.common import utils
+from drloco.common.schedules import LinearDecay, ExponentialSchedule
+from drloco.callback import TrainingMonitor
 
-# from scripts.algos.custom_ppo2 import CustomPPO2
 from stable_baselines3 import PPO
 from stable_baselines3.ppo.policies import MlpPolicy
-from scripts.custom.policies import CustomActorCriticPolicy
+from drloco.custom.policies import CustomActorCriticPolicy
+
+# determine the name of saved models before (init) and after training (final)
+INIT_CHECKPOINT_SUFFIX = 'init'
+FINAL_CHECKPOINT_SUFFIX = 'final'
+
+def use_cpu():
+    """
+    Force PyTorch to use CPU instead of GPU.
+    In some cases, e.g. training many agents in parallel on a CPU cluster,
+    it might be useful to use CPU instead of GPU. This function fools PyTorch
+    to think there is no GPU available on the PC, so that it uses the CPU.
+    """
+    from os import environ
+    # fool python to think there is no CUDA device
+    environ["CUDA_VISIBLE_DEVICES"] = ""
+    # to avoid massive slow-down when using torch with cpu
+    import torch
+    n_envs = cfg.n_envs
+    torch.set_num_threads(n_envs if n_envs <= 16 else 8)
 
 
 def init_wandb(model):
@@ -24,25 +47,18 @@ def init_wandb(model):
         "path": cfg.save_path,
         "env_id": cfgl.ENV_ID,
         "mod": cfg.modification,
-        "ctrl_freq": cfg.CTRL_FREQ,
         "lr0": cfg.lr_start,
         "lr1": cfg.lr_final,
         'hid_sizes': cfg.hid_layer_sizes,
-        # 'peak_joint_torques': cfg.peak_joint_torques,
-        'walker_xml_file': cfg.walker_xml_file,
         "noptepochs": cfg.noptepochs,
         "batch_size": batch_size,
         "cfg.batch_size": cfg.batch_size,
-        # "n_mini_batches": model.nminibatches,
         "cfg.minibatch_size": cfg.minibatch_size,
-        # "mini_batch_size": int(batch_size / model.nminibatches),
         "mio_steps": cfg.mio_samples,
         "ent_coef": model.ent_coef,
         "ep_dur": cfg.ep_dur_max,
         "imit_rew": cfg.rew_weights,
         "logstd": cfg.init_logstd,
-        # "min_logstd": LOG_STD_MIN,
-        # "max_logstd": LOG_STD_MAX,
         "gam": model.gamma,
         "lam": model.gae_lambda,
         "n_envs": model.n_envs,
@@ -51,16 +67,19 @@ def init_wandb(model):
         "n_steps": model.n_steps,
         "vf_coef": model.vf_coef,
         "max_grad_norm": model.max_grad_norm,
-        # "nminibatches": model.nminibatches,
-        "clip0": cfg.clip_start,
-        "clip1": cfg.clip_end,
         }
+
+    if cfg.is_mod(cfg.MOD_CLIPRANGE_SCHED):
+        params.update({"clip0": cfg.clip_start, "clip1": cfg.clip_end})
 
     wandb.init(config=params, sync_tensorboard=True, name=cfgl.WB_RUN_NAME,
                project=cfgl.WB_PROJECT_NAME, notes=cfgl.WB_RUN_DESCRIPTION)
 
 
 def train():
+
+    # make torch using the CPU instead of the GPU
+    if cfgl.USE_CPU: use_cpu()
 
     # create model directories
     if not os.path.exists(cfg.save_path):
@@ -79,7 +98,11 @@ def train():
     lr_end = cfg.lr_final
 
     learning_rate_schedule = LinearDecay(lr_start, lr_end).value
-    clip_schedule = ExponentialSchedule(cfg.clip_start, cfg.clip_end, cfg.clip_exp_slope).value
+    if cfg.is_mod(cfg.MOD_CLIPRANGE_SCHED):
+        clip_schedule = ExponentialSchedule(cfg.clip_start, cfg.clip_end, cfg.clip_exp_slope)
+        clip_range = clip_schedule.value
+    else:
+        clip_range = cfg.cliprange
 
     use_custom_policy = cfg.is_mod(cfg.MOD_CUSTOM_POLICY)
     policy_kwargs = {'log_std_init':cfg.init_logstd} if use_custom_policy else \
@@ -93,13 +116,11 @@ def train():
                        policy_kwargs=policy_kwargs,
                        learning_rate=learning_rate_schedule, ent_coef=cfg.ent_coef,
                        gamma=cfg.gamma, n_epochs=cfg.noptepochs,
-                       clip_range_vf=clip_schedule if cfg.is_mod(cfg.MOD_CLIPRANGE_SCHED) else cfg.cliprange,
-                       clip_range=clip_schedule if cfg.is_mod(cfg.MOD_CLIPRANGE_SCHED) else cfg.cliprange,
+                       clip_range_vf=clip_range, clip_range=clip_range,
                        tensorboard_log=cfg.save_path + 'tb_logs/')
 
-    # init wandb
-    if not cfg.DEBUG:
-        init_wandb(model)
+    # init wandb when not debugging
+    if not cfgl.DEBUG: init_wandb(model)
 
     # print model path and modification parameters
     utils.log('RUN DESCRIPTION: \n' + cfgl.WB_RUN_DESCRIPTION)
@@ -107,20 +128,20 @@ def train():
               ['Model: ' + cfg.save_path, 'Modifications: ' + cfg.modification])
 
     # save model and weights before training
-    if not cfg.DEBUG:
-        utils.save_model(model, cfg.save_path, scripts.config.config.init_checkpoint)
+    if not cfgl.DEBUG:
+        utils.save_model(model, cfg.save_path, INIT_CHECKPOINT_SUFFIX)
 
     # train model
     model.learn(total_timesteps=training_timesteps, callback=TrainingMonitor())
 
     # save model after training
-    utils.save_model(model, cfg.save_path, scripts.config.config.final_checkpoint)
+    utils.save_model(model, cfg.save_path, FINAL_CHECKPOINT_SUFFIX)
 
     # close environment
     env.close()
 
-    # evaluate last saved model
-    eval.eval_model()
+    # evaluate the trained model
+    # eval.eval_model()
 
 
 if __name__ == '__main__':

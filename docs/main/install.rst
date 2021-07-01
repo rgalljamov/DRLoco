@@ -39,19 +39,16 @@ This page guides you through the installation process to get up and running with
 
 	#. If there are still issues, please check the `official installation instructions of Stable Baselines <https://stable-baselines3.readthedocs.io/en/master/guide/install.html>`_.
 
+#. Install `Weights & Biases <https://wandb.ai/>`_ for beautiful and professional logging of training results and *seaborn* for plotting:
+
+	.. code-block:: console
+	
+	   conda install seaborn
+	   conda install -c conda-forge wandb
 
 #. Clone the *DRLoco* repository to your local PC (`Link to repository <https://github.com/rgalljamov/DRLoco>`_). 
 
 	#. In the following, we refer to the absolute path of the local folder on your PC you cloned the repository to as ``/local/path/to/repo/``.
-
-#. Install the gym_mimic_envs (this step will no longer be required in the future... in the moment it is required to register our mujoco environments.)
-
-	1. Open a terminal and navigate to the ``mujoco`` folder, where the ``gym_mimic_envs`` folder is located. 
-	2. ``pip install -e .`` to install the environment
-
-	    1. If you get the error "ERROR: Package 'imageio' requires a different Python: 2.7.17 not in '>=3.5'", use ``pip3 install -e .`` instead. 
-
-    	.. important:: It is important to **not** use *sudo* during installation!
 
 
 #. [OPTIONAL] If you want to distinguish between running your code on a weak local laptop and running it on a powerful remote server, adapt :func:`is_remote` in ``scripts/common/utils.py``. Please refer to this function's doc-string for more details.
@@ -67,19 +64,28 @@ This page guides you through the installation process to get up and running with
 
 	#. If you get import errors, install the the missing packages in your conda environment.
 
+	#. When you get the error *GLEW initalization error: Missing GL version*, please add the following text at the end of the file ``~/.bashrc``:
+
+		.. code:: console
+
+		   export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libGLEW.so:/usr/lib/x86_64-linux-gnu/libGL.so
+
+
+		#. If that still not solves your issue, please refer to this `bug report <https://github.com/openai/mujoco-py/issues/268.>`_.
+
 
 
 Installing Additional Features
 ===============================
 
-#. To record videos of the generated walking gait at the training's end, we need to further install ``ffmpeg``: ``conda install -c conda-forge ffmpeg``
+.. warning::
 
-	1. If you want to record the video on a remote server without a UI, in addtion install
-		1. `sudo apt install xvfb`
-		2. to execute the training script run `xvfb-run python /path/to/script.py`
-		3. if the first two steps still not allow to record videos, use
-			1. install `conda install -c conda-forge pyvirtualdisplay`
+   Video recording might be broken in the moment. To see the performance of an agent, please run your model using :mod:`run.py`. Please read :ref:`Running an agent` for more details.
 
-#. Install Weights&Biases for logging training results
+#. To record videos of the generated walking gait at the training's end, we need to further install ``ffmpeg``:
 
-	1. `conda install -c conda-forge wandb`
+	.. code-block:: console
+
+	   conda install -c conda-forge ffmpeg
+		
+#. If you want to record the video on a remote server without a UI, in addtion install xvfb with ``sudo apt install xvfb``. To execute the training script run ``xvfb-run python /path/to/train.py``.
