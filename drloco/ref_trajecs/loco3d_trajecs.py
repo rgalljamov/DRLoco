@@ -34,7 +34,7 @@ class Loco3dReferenceTrajectories(BaseReferenceTrajectories):
 
     def _load_ref_trajecs(self):
         dir_path = get_project_path()
-        file_path = 'assets/mocaps/loco3d/loco3d_guoping.mat'
+        file_path = 'mocaps/loco3d/loco3d_guoping.mat'
 
         data = spio.loadmat(dir_path + file_path, squeeze_me=True)
 
