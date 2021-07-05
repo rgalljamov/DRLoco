@@ -18,8 +18,8 @@ from drloco.common.utils import log, is_remote, config_pyplot, smooth_exponentia
 REMOTE = is_remote()
 
 # relative paths to the two available trajectories
-PATH_CONSTANT_SPEED = 'assets/mocaps/straight_walking/Trajecs_Constant_Speed_400Hz.mat'
-PATH_SPEED_RAMP = 'assets/mocaps/straight_walking/Trajecs_Ramp_Slow_400Hz_EulerTrunkAdded.mat'
+PATH_CONSTANT_SPEED = 'mocaps/straight_walking/Trajecs_Constant_Speed_400Hz.mat'
+PATH_SPEED_RAMP = 'mocaps/straight_walking/Trajecs_Ramp_Slow_400Hz_EulerTrunkAdded.mat'
 # path to the reference trajectories to use
 PATH_REF_TRAJECS = PATH_SPEED_RAMP
 

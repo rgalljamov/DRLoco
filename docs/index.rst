@@ -5,13 +5,15 @@
 
 DRLoco - DeepMimic meets MuJoCo for Locomotion
 ****************************************************
-.. important::
-	Stable-Baselines3 + MuJoCo + DeepMimic = DRLoco
 
-.. warning::
+.. note::
+   **DRLoco = DeepMimic(MuJoCo, StableBaselines3)**
 
-   Do we need to limit ourselves to walker environments only? 
-   Actually not at all! The only thing so far that limits us to walking is the evaluation of the agents performance. When we refactor the code to allow implementing custom evaluation, we've created a easy to use DeepMimic Framework.
+.. .. warning::
+
+..    Do we need to limit ourselves to walker environments only? 
+..    Actually not at all! The only thing so far that limits us to walking is the evaluation of the agents performance. When we refactor the code to allow implementing custom evaluation, we've created a easy to use DeepMimic Framework.
+   
 
 This repository for you, when:
 ===============================

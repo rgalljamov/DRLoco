@@ -547,7 +547,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         # without ground contact or with significant ground penetration
         # Set the following constant to True to initialize walker always in ground contact.
         # CAUTION: This requires your mujoco model to have sites on their foot soul.
-        # See mujoco/gym_mimic_envs/mujoco/assets/walker3d_flat_feet.xml for an example.
+        # See drloco/mujoco/xml/walker3d_flat_feet.xml for an example.
         OPTIMIZE_GROUND_CONTANT_ON_INITIALIZATION = True
         if OPTIMIZE_GROUND_CONTANT_ON_INITIALIZATION:
             # we determine the lowest foot position (4 sites at the bottom of each foot in the XML file)
