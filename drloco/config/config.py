@@ -14,7 +14,7 @@ USE_CPU = True
 # -----------------------------
 
 # specify the environment you want to use
-ENV_ID = 'StraightMimicWalker' # 'MimicWalker165cm65kg' #
+ENV_ID = 'MimicWalker165cm65kg' # 'StraightMimicWalker' #
 # specify control frequency in Hz (policy queries per second)
 CTRL_FREQ = {'StraightMimicWalker': 200,
              'MimicWalker165cm65kg': 100}[ENV_ID]
