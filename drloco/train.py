@@ -9,13 +9,11 @@ import wandb
 
 import torch as th
 
-import drloco.config.config
-from drloco import eval
 from drloco.config import config as cfgl
 from drloco.config import hypers as cfg
 from drloco.common import utils
 from drloco.common.schedules import LinearDecay, ExponentialSchedule
-from drloco.callback import TrainingMonitor
+from drloco.common.callback import TrainingMonitor
 
 from stable_baselines3 import PPO
 from stable_baselines3.ppo.policies import MlpPolicy

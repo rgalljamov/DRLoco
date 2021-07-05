@@ -3,6 +3,8 @@
 Reference Trajectories
 ************************
 
+* TODO: mention calculation of desired walking speed.
+
 Overview
 =============
 
