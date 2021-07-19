@@ -64,7 +64,7 @@ gamma = {50:0.99, 100: 0.99, 200:0.995, 400:0.998}[cfg.CTRL_FREQ]
 # PPO samples the actions from a Gaussian Distribution.
 # This hyperparameter specifies the the log standard deviation
 # of the initial Gaussian Distribution at the trainings beginning
-# NOTE: e^(-0.7) is about 0.5 which we found to be optimal for
+# NOTE: e^(-0.7) i  s about 0.5 which we found to be optimal for
 # a normalized action space with a range of [-1,1]
 init_logstd = -0.7
 
