@@ -117,9 +117,11 @@ noptepochs = 4
 # we construct a path to save the trained model at.
 # ---------------------------------------------------
 
+# run aka. agent id to avoid overwriting agents with same hyperparameter choices
 run_id = str(np.random.randint(0, 1000))
+# the part of the path constructed from hyperparameters
 _mod_path = ('cfg.DEBUG/' if cfg.DEBUG else '') + \
             f'train/{modification}/{cfg.ENV_ID}/{n_envs}envs/' \
             f'{mio_samples}mio/'
-save_path_norun= utils.get_project_path() + 'models/' + _mod_path
-save_path = save_path_norun + f'{run_id}/'
+# the final saving path of the current agent
+save_path = utils.get_project_path() + 'models/' + _mod_path + f'{run_id}/'
