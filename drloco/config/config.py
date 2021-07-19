@@ -14,6 +14,7 @@ USE_CPU = True
 # -----------------------------
 
 # specify the environment you want to use
+# the IDs of all available environments are listed in mujoco/config.py
 ENV_ID = 'MimicWalker165cm65kg' # 'StraightMimicWalker' #
 # specify control frequency in Hz (policy queries per second)
 CTRL_FREQ = {'StraightMimicWalker': 200,

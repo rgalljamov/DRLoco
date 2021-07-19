@@ -6,12 +6,18 @@ Running an agent
 
 To run a trained agent, specify the path to the agent of interest in ``run.py``. In this script, you in addition have multiple flags to set. Each line of the code is documented in detail by comments. The most important flags are still described in more detail here:
 
-* `FROM_PATH` is a boolean flag allowing you to distinguish if you want to run a trained agent saved on your local PC (True) or just running a random agent on the environment specified in ``config/config.py``. The latter might be helpful for testing purposes.
+* :mod:`FROM_PATH` is a boolean flag allowing you to distinguish if you want to run a trained agent saved on your local PC (True) or just running a random agent on the environment specified in ``config/config.py``. The latter might be helpful for testing purposes.
 
-* `PLAYBACK_TRAJECS` can be set to ``True`` to playback the corresponding reference trajectories on the current environment (set in ``config/config.py``). It is useful to test the configuration of mujoco models as well as their compatibility with the reference trajectories. Use this functionality every time you add a new or change existing mujoco models or reference trajectories.   
+* :mod:`PLAYBACK_TRAJECS` can be set to ``True`` to playback the corresponding reference trajectories on the current environment (set in ``config/config.py``). It is useful to test the configuration of mujoco models as well as their compatibility with the reference trajectories. Use this functionality every time you add a new or change existing mujoco models or reference trajectories.   
 
-* `SPEED_CONTROL` allows you to specify a velocity profile for the walkers COM. Therefore, discrete desired velocities are specified in a list. The desired continuous COM velocity profile is constructed by linearly interpolating between the desired velocities.
+* :mod:`SPEED_CONTROL` allows you to specify a velocity profile for the walkers COM. Therefore, discrete desired velocities are specified in a list. The desired continuous COM velocity profile is constructed by linearly interpolating between the desired velocities.
 
+
+.. important::
+
+   To successfully run an agent, all configurations like the modifications to the PPO algorithm (variable *modification* in $config/hypers.py$), the observation and action spaces as well as other modifications to the environment have to be the same as during the training of the agent.
+
+   Counterexample: The agent was trained by using the phase variable. During running the agent, instead of the true phase variable, its estimation from the hip joint is used. This setting will not result in any crashes, as the observation space dimensionality stays the same. However, the agent will very likely perform poorly.
 
 
 WHEN do we save agents?
@@ -29,7 +35,7 @@ During the training of an agent, we save multiple checkpoints:
 
 	* reaching 50, 60, ... 90% of maximum possible episode return
 
-.. important:
+.. important::
    
    Each agent is always saved with a corresponding environment. This environment has to be loaded together with the agent to run the agent. This is done automatically within this framework. 
 
