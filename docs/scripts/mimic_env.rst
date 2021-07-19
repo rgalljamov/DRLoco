@@ -29,9 +29,9 @@ It's main purpose is to execute an action in the environment and return the curr
    we're using the well known trick of applying the same action for multiple (``_frame_skip``) simulation frames resulting in a control frequency of :math:`f_{ctrl} = f_{sim} / \text{frame_skip}`.
 
 
-Automodule TEST
---------------------
-.. automodule:: gym_mimic_envs.mimic_env
+.. Automodule TEST
+.. --------------------
+.. .. automodule:: gym_mimic_envs.mimic_env
 
-.. autoclass:: MimicEnv
-   :members: step, get_reward
+.. .. autoclass:: MimicEnv
+..    :members: step, get_reward

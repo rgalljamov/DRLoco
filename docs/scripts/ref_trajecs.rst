@@ -32,11 +32,11 @@ To use your own reference trajectories, you have to:
 **Example for using custom reference trajectories:** ``scripts/ref_trajecs/loco3d_trajecs.py``.
 
 
-Code Documentation
-=====================
+.. Code Documentation
+.. =====================
 
-.. automodule:: scripts.ref_trajecs.base_ref_trajecs
+.. .. automodule:: scripts.ref_trajecs.base_ref_trajecs
 
 
-.. autoclass:: BaseReferenceTrajectories
-   :members:
+.. .. autoclass:: BaseReferenceTrajectories
+..    :members:
