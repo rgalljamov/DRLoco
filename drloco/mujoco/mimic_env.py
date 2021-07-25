@@ -411,14 +411,22 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             #  when speed control is not active, set the speed to a constant value from the config
             #  During training, we still should use the step vel from the mocap!
             self.desired_walking_speed = self.refs.get_desired_walking_velocity_vector(self._EVAL_MODEL)
-    
-        # phase = self.refs.get_phase_variable()
-        phases = self.estimate_phase_vars_from_joint_phase_plots(qpos, qvel)
+
+        # use the real phase variable
+        if cfgl.ENV_ID == 'StraightMimicWalker':
+            phases = [self.refs.get_phase_variable()]
+        else:
+            phases = self.estimate_phase_vars_from_joint_phase_plots(qpos, qvel)
 
         # remove COM X and in the 3D case also COM Y position
         # as the action should be independent of the walkers position in space
         # WARNING: This only applies for a blind walker on a  flat ground!
-        qpos = qpos[len(self._get_COM_indices())-1:]
+        # qpos = qpos[len(self._get_COM_indices())-1:]
+        # in the moment, we're only walking straight, therefore, the COM Y position is important to us
+        # @Guoping, when waling in circles, the COM Y position should not be part of the observations,
+        #  as the actions should be independent of the walkers position in 3D space. On the other side,
+        #  the COM is moving in Y direction during walking, so we should include this information somehow?
+        qpos = qpos[1:]
 
         obs = np.array([*phases, *self.desired_walking_speed, *qpos, *qvel])
 
@@ -473,24 +481,11 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
 
     def mirror_action(self, acts):
-        is3d = '3d' in cfg.env_abbrev or '3pd' in cfg.env_abbrev
-        if is3d:
-            mirred_acts_indices = [4, 5, 6, 7, 0, 1, 2, 3]
-            # some observations and actions retain the same absolute value but change the sign
-            negate_act_indices = [1, 5]
-        else:
-            mirred_acts_indices = [3, 4, 5, 0, 1, 2]
-
-        try:
-            acts_mirred = acts[mirred_acts_indices]
-            if is3d:
-                acts_mirred[negate_act_indices] *= -1
-        except Exception as ex:
-            log('WARNING! Could not mirror actions',
-                [f'Exception: {ex}', f'Actions: {acts}'])
-            acts_mirred = acts
-
-
+        mirred_acts_indices = [4, 5, 6, 7, 0, 1, 2, 3]
+        # some observations and actions retain the same absolute value but change the sign
+        negate_act_indices = [1, 5]
+        acts_mirred = acts[mirred_acts_indices]
+        acts_mirred[negate_act_indices] *= -1
         return acts_mirred
 
 
