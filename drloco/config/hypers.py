@@ -20,7 +20,7 @@ MOD_CLIPRANGE_SCHED = 'clip_sched'
 MOD_MIRR_POLICY = 'mirr_py'
 
 # specify modifications to the baseline algorithm, e.g. mirroring policy
-modifications_list = [MOD_CUSTOM_POLICY]
+modifications_list = [MOD_CUSTOM_POLICY, MOD_MIRR_POLICY]
 modification = '/'.join(modifications_list)
 
 def is_mod(mod_str):
@@ -28,9 +28,15 @@ def is_mod(mod_str):
        e.g. is_mod(MOD_MIRR_POLICY) is true, when we mirror the policy. '''
     return mod_str in modification
 
-assert not is_mod(MOD_MIRR_POLICY), \
-    'Mirroring Policy can only be used with the StraightWalker. ' \
-    'AND only after changing the mirroring functions! '
+# Mirroring Policy only works with the Straight Walker and
+# the observation space having a 1D desired velocity, a 1D phase and the COM Y position being included!
+# These requirements are satisfied in the code in the moment. Once, sth. is changed,
+# the mirroring functions in mujoco/mimic_env.py have to be adjusted, which is quite simple.
+# If changes are made to the observation space but mirroring functions are not changed,
+# the following lines should be uncommented.
+# assert not is_mod(MOD_MIRR_POLICY), \
+#     'Mirroring Policy can only be used with the StraightWalker. ' \
+#     'AND only after changing the mirroring functions! '
 
 
 # ---------------------------------------------------
@@ -49,7 +55,7 @@ rew_scale = 1
 alive_bonus = 0.2 * rew_scale
 
 # Early Termination: maximum steps in the environment per episode
-ep_dur_max = 1000
+ep_dur_max = 3000
 
 # ---------------------------------------------------
 # (PPO) HYPERPARAMETERS
@@ -66,7 +72,7 @@ gamma = {50:0.99, 100: 0.99, 200:0.995, 400:0.998}[cfg.CTRL_FREQ]
 # of the initial Gaussian Distribution at the trainings beginning
 # NOTE: e^(-0.7) i  s about 0.5 which we found to be optimal for
 # a normalized action space with a range of [-1,1]
-init_logstd = -0.7
+init_logstd = -0.75
 
 # batch and minibatch size
 minibatch_size = 512 * 4
